@@ -11,6 +11,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <TH/TH.h>
+
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/text_format.h>
@@ -28,6 +30,8 @@ using google::protobuf::Message;
 
 extern "C" {
 void convertProtoToLua(const char* prototxt_name, const char* lua_name, const char* cuda_package);
+void loadBinary(const char* prototxt_name, const char* binary_name, void** params);
+void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias);
 }
 
 
@@ -58,10 +62,6 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
 }
 
 
-//int main(int argc, const char * argv[]) {
-//    caffe::NetParameter netparam;
-//    ReadProtoFromTextFile("/opt/caffe/models/bvlc_reference_caffenet/deploy.prototxt", &netparam);
-    
 void convertProtoToLua(const char* prototxt_name, const char* lua_name, const char* cuda_package)
 {
   caffe::NetParameter netparam;
@@ -89,7 +89,8 @@ void convertProtoToLua(const char* prototxt_name, const char* lua_name, const ch
                 int kW = param.kernel_size();
                 int dW = param.stride();
                 int groups = param.group();
-                sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, groups);
+                int padding = param.pad();
+                sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, padding, groups);
                 break;
             }
             case caffe::LayerParameter::POOLING:
@@ -131,7 +132,7 @@ void convertProtoToLua(const char* prototxt_name, const char* lua_name, const ch
             }
             default:
             {
-                std::cout << "MODULE UNDEFINED";
+                std::cout << "MODULE UNDEFINED\n";
 		success = false;
             }
         }
@@ -141,8 +142,52 @@ void convertProtoToLua(const char* prototxt_name, const char* lua_name, const ch
 	else
 	  ofs << "-- module \"" << netparam.layers(i).name() << "\" not found\n";
     }
-    
-//    bool success = ReadProtoFromBinaryFile("/opt/caffe/models/bvlc_reference_caffenet/bvlc_reference_caffenet.caffemodel", &netparam);
-    
-    //return 0;
+}
+
+
+void loadBinary(const char* prototxt_name, const char* binary_name, void** handle)
+{
+  caffe::NetParameter* netparam = (caffe::NetParameter*)handle;
+  netparam = new caffe::NetParameter();
+  ReadProtoFromTextFile(prototxt_name, netparam);
+  bool success = ReadProtoFromBinaryFile(binary_name, netparam);
+  if(success)
+    std::cout << "Successfully loaded " << binary_name << std::endl;
+  else
+    std::cout << "Couldn't load " << binary_name << std::endl;
+
+  handle[1] = netparam;
+  const caffe::NetParameter* netparam2 = (const caffe::NetParameter*)handle[1];
+}
+
+
+void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias)
+{
+  if(handle == NULL)
+  {
+    std::cout << "network not loaded!\n";
+    return;
+  }
+
+  const caffe::NetParameter* netparam = (const caffe::NetParameter*)handle[1];
+
+  int n = netparam->layers_size();
+  for(int i=0; i<n; ++i)
+  {
+    auto &layer = netparam->layers(i);
+    if(std::string(name) == layer.name())
+    {
+      int nInputPlane = layer.blobs(0).channels();
+      int nOutputPlane = layer.blobs(0).num();
+      int kW = layer.blobs(0).width();
+      int kH = layer.blobs(0).height();
+      printf("%s: %d %d %d %d\n", name, nOutputPlane, nInputPlane, kW, kH);
+      
+      THFloatTensor_resize4d(weight, nOutputPlane, nInputPlane, kW, kH);
+      memcpy(THFloatTensor_data(weight), layer.blobs(0).data().data(), sizeof(float)*nOutputPlane*nInputPlane*kW*kH);
+
+      THFloatTensor_resize1d(bias, layer.blobs(1).data_size());
+      memcpy(THFloatTensor_data(bias), layer.blobs(1).data().data(), sizeof(float)*layer.blobs(1).data_size());
+    }
+  }
 }
