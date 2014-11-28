@@ -1,6 +1,19 @@
 loadcaffe
 =========
 
-Load caffe networks in torch7
+Load Caffe networks in Torch7
 
-You only have to have protobuf installed, no dependencies on caffe.
+There is no Caffe dependency, only protobuf has to be installed.
+
+Work in progress! For now only imagenet with cuda-convnet2 tested. To load it do:
+
+```lua
+require 'loadcaffe'
+
+prototxt_name = '/home/zagoruys/deploy.prototxt'
+binary_name = '/home/zagoruys/bvlc_reference_caffenet.caffemodel'
+
+model = loadcaffe.load(prototxt_name, binary_name, 'ccn2')
+```
+
+https://github.com/BVLC/caffe/wiki/Model-Zoo in plans.
