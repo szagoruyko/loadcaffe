@@ -29,15 +29,18 @@ using google::protobuf::Message;
 
 
 extern "C" {
-void convertProtoToLua(const char* prototxt_name, const char* lua_name, const char* cuda_package);
-void loadBinary(const char* prototxt_name, const char* binary_name, void** params);
+void loadBinary(void** handle, const char* prototxt_name, const char* binary_name);
+void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package);
 void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias);
+void destroyBinary(void** handle);
 }
 
 
 bool ReadProtoFromTextFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
-    // TODO: check for not found
+    if(fd == 0)
+      return false;
+    
     FileInputStream* input = new FileInputStream(fd);
     bool success = google::protobuf::TextFormat::Parse(input, proto);
     delete input;
@@ -48,7 +51,9 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
 
 bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
-    // TODO: check for not found
+    if(fd == 0)
+      return false;
+    
     ZeroCopyInputStream* raw_input = new FileInputStream(fd);
     CodedInputStream* coded_input = new CodedInputStream(raw_input);
     coded_input->SetTotalBytesLimit(1073741824, 536870912);
@@ -62,33 +67,45 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
 }
 
 
-void convertProtoToLua(const char* prototxt_name, const char* lua_name, const char* cuda_package)
+void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package)
 {
-  caffe::NetParameter netparam;
-  ReadProtoFromTextFile(prototxt_name, &netparam);
+  const caffe::NetParameter netparam = *(const caffe::NetParameter*)handle[1];
 
   std::ofstream ofs (lua_name);
 
-  ofs << "require 'ccn2'\n";
-  ofs << "require 'cudnn'\n";
+  ofs << "require '" << cuda_package << "'\n";
+  ofs << "require 'cunn'\n";
   ofs << "model = {}\n";
   
-    int num_output = 0;
+  int num_output = netparam.input_dim_size();
     for (int i=0; i<netparam.layers_size(); ++i)
     {
 	char buf[1024];
 	bool success = true;
+        bool insert_view = false;
         switch(netparam.layers(i).type())
         {
             case caffe::LayerParameter::CONVOLUTION:
             {
                 auto &param = netparam.layers(i).convolution_param();
-                int nInputPlane = i==0 ? netparam.input_dim(1) : num_output;
+                int groups = param.group() == 0 ? 1 : param.group();
+                int nInputPlane = netparam.layers(i).blobs(0).channels()*groups;
                 int nOutputPlane = param.num_output();
                 num_output = nOutputPlane;
-                int kW = param.kernel_size();
-                int dW = param.stride();
-                int groups = param.group();
+                int kW = param.kernel_w();
+                int kH = param.kernel_h();
+                int dW = param.stride_w();
+                int dH = param.stride_h();
+                if(kW==0 || kH==0)
+                {
+                  kW = param.kernel_size();
+                  kH = kW;
+                }
+                if(dW==0 || dH==0)
+                {
+                  dW = param.stride();
+                  dH = dW;
+                }
                 int padding = param.pad();
                 sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, padding, groups);
                 break;
@@ -119,8 +136,9 @@ void convertProtoToLua(const char* prototxt_name, const char* lua_name, const ch
             case caffe::LayerParameter::INNER_PRODUCT:
             {
                 auto &param = netparam.layers(i).inner_product_param();
-                int nInputPlane = i==0 ? netparam.input_dim(1) : num_output;
+                int nInputPlane = netparam.layers(i).blobs(0).width();
                 int nOutputPlane = param.num_output();
+                insert_view = num_output != nInputPlane;
                 num_output = nOutputPlane;
                 sprintf(buf, "nn.Linear(%d, %d)", nInputPlane, nOutputPlane);
                 break;
@@ -130,13 +148,24 @@ void convertProtoToLua(const char* prototxt_name, const char* lua_name, const ch
                 sprintf(buf, "nn.Dropout(%f)", netparam.layers(i).dropout_param().dropout_ratio());
                 break;
             }
+            case caffe::LayerParameter::SOFTMAX_LOSS:
+            {
+	        sprintf(buf, "nn.SoftMax()");
+                break;
+            }
             default:
             {
-                std::cout << "MODULE UNDEFINED\n";
+                std::cout << "MODULE " << netparam.layers(i).type() << " UNDEFINED\n";
 		success = false;
             }
         }
 
+        if(insert_view)
+        {
+          if(std::string(cuda_package) == "ccn2")
+            ofs << "table.insert(model, {'reshape', nn.Transpose({4,1},{4,2},{4,3})})\n";
+          ofs << "table.insert(model, {'view', nn.View(-1):setNumInputDims(3)})\n";
+        }
 	if(success)
 	  ofs << "table.insert(model, {\"" << netparam.layers(i).name() << "\", " << buf << "})\n";
 	else
@@ -145,7 +174,7 @@ void convertProtoToLua(const char* prototxt_name, const char* lua_name, const ch
 }
 
 
-void loadBinary(const char* prototxt_name, const char* binary_name, void** handle)
+void loadBinary(void** handle, const char* prototxt_name, const char* binary_name)
 {
   caffe::NetParameter* netparam = (caffe::NetParameter*)handle;
   netparam = new caffe::NetParameter();
@@ -157,9 +186,13 @@ void loadBinary(const char* prototxt_name, const char* binary_name, void** handl
     std::cout << "Couldn't load " << binary_name << std::endl;
 
   handle[1] = netparam;
-  const caffe::NetParameter* netparam2 = (const caffe::NetParameter*)handle[1];
 }
 
+void destroyBinary(void** handle)
+{
+  const caffe::NetParameter* netparam2 = (const caffe::NetParameter*)handle[1];
+  delete netparam2;
+}
 
 void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias)
 {
