@@ -1,3 +1,6 @@
-dofile 'loadcaffe.lua'
+require 'loadcaffe'
 
-loadcaffe.convertProtoToLua('/opt/caffe/models/bvlc_reference_caffenet/deploy.prototxt', 'file.lua', 'ccn2')
+prototxt_name = '/home/zagoruys/deploy.prototxt'
+binary_name = '/home/zagoruys/bvlc_reference_caffenet.caffemodel'
+
+model = loadcaffe.load(prototxt_name, binary_name, 'ccn2')

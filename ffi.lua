@@ -7,5 +7,4 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 void loadModule(void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias);
 ]]
 
---loadcaffe.C = ffi.load(package.searchpath('libloadcaffe', package.cpath))
-loadcaffe.C = ffi.load('./build/libloadcaffe.so')
+loadcaffe.C = ffi.load(package.searchpath('libloadcaffe', package.cpath))
