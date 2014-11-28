@@ -15,7 +15,7 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/text_format.h>
 
-#include "caffe.pb.h"
+#include "build/caffe.pb.h"
 
 using google::protobuf::io::FileInputStream;
 using google::protobuf::io::FileOutputStream;

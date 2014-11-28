@@ -10,9 +10,14 @@ INCLUDE_DIRECTORIES("${Torch_INSTALL_INCLUDE}/TH")
 
 LINK_DIRECTORIES("${Torch_INSTALL_LIB}")
 
-SET(src loadcaffe.cpp caffe.pb.cc)
+
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS caffe.proto)
+
+SET(src loadcaffe.cpp ${PROTO_SRCS})
 
 FILE(GLOB luasrc *.lua)
+
+add_definitions(-std=c++11)
 
 ADD_LIBRARY(loadcaffe MODULE ${src})
 TARGET_LINK_LIBRARIES(loadcaffe TH protobuf)
