@@ -107,16 +107,34 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
                   dH = dW;
                 }
                 int padding = param.pad();
-                sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, padding, groups);
+                if(std::string(cuda_package) == "ccn2")
+                  sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, padding, groups);
+                else
+                  sprintf(buf, "%s.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d)", cuda_package, nInputPlane, nOutputPlane, kW, kH, dW, dW, padding);
                 break;
             }
             case caffe::LayerParameter::POOLING:
             {
                 auto &param = netparam.layers(i).pooling_param();
                 std::string ptype = param.pool() == caffe::PoolingParameter::MAX ? "Max" : "Avg";
-                int kW = param.kernel_size();
-                int dW = param.stride();
-                sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+                int kW = param.kernel_w();
+                int kH = param.kernel_h();
+                int dW = param.stride_w();
+                int dH = param.stride_h();
+                if(kW==0 || kH==0)
+                {
+                  kW = param.kernel_size();
+                  kH = kW;
+                }
+                if(dW==0 || dH==0)
+                {
+                  dW = param.stride();
+                  dH = dW;
+                }
+                if(std::string(cuda_package) == "ccn2")
+                  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+                else
+                  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d)", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
                 break;
             }
             case caffe::LayerParameter::RELU:
@@ -126,12 +144,19 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
             }
             case caffe::LayerParameter::LRN:
             {
+              if(std::string(cuda_package) == "ccn2")
+              {
                 auto &param = netparam.layers(i).lrn_param();
                 int local_size = param.local_size();
                 float alpha = param.alpha();
                 float beta = param.beta();
                 sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
-                break;
+              }
+              else
+              {
+                success = false;
+              }
+              break;
             }
             case caffe::LayerParameter::INNER_PRODUCT:
             {

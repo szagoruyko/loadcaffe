@@ -17,7 +17,9 @@ loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
       local w = torch.FloatTensor()
       local bias = torch.FloatTensor()
       C['loadModule'](handle, item[1], w:cdata(), bias:cdata())
-      w = w:transpose(1,4):transpose(1,3):transpose(1,2)
+      if cuda_package == 'ccn2' then
+        w = w:transpose(1,4):transpose(1,3):transpose(1,2)
+      end
       item[2].weight:copy(w)
       item[2].bias:copy(bias)
     end
