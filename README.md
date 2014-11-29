@@ -3,9 +3,13 @@ loadcaffe
 
 Load Caffe networks in Torch7
 
-There is no Caffe dependency, only protobuf has to be installed.
+There is no Caffe dependency, only protobuf has to be installed. In Ubuntu do:
 
-Work in progress! To load a network do:
+```
+sudo apt-get install libprotobuf-dev
+```
+
+To load a network do:
 
 ```lua
 require 'loadcaffe'
@@ -20,4 +24,8 @@ Tested with cuda-convnet2:
 * bvlc_alexnet
 * finetune_flickr_style
 
+Other nets as VGG_CNN can be loaded, but doesn't work yet, weights, however, can be used. We're going to fix this soon.
+
 https://github.com/BVLC/caffe/wiki/Model-Zoo in plans.
+
+Rights to caffe.proto belong to University of California.
