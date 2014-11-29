@@ -76,6 +76,8 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
   ofs << "require '" << cuda_package << "'\n";
   ofs << "require 'cunn'\n";
   ofs << "model = {}\n";
+  if(std::string(cuda_package)=="ccn2")
+    ofs<< "table.insert(model, {'tr1', nn.Transpose({1,4},{1,3},{1,2})})\n";
   
   int num_output = netparam.input_dim_size();
     for (int i=0; i<netparam.layers_size(); ++i)
@@ -128,7 +130,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
                 }
                 if(dW==0 || dH==0)
                 {
-                  dW = param.stride()==0;
+                  dW = param.stride();
                   dH = dW;
                 }
                 if(std::string(cuda_package) == "ccn2")
@@ -178,9 +180,14 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	        sprintf(buf, "nn.SoftMax()");
                 break;
             }
+            case caffe::LayerParameter::SOFTMAX:
+            {
+	        sprintf(buf, "nn.SoftMax()");
+                break;
+            }
             default:
             {
-                std::cout << "MODULE " << netparam.layers(i).type() << " UNDEFINED\n";
+                std::cout << "MODULE " << netparam.layers(i).name() << " UNDEFINED\n";
 		success = false;
             }
         }
