@@ -110,7 +110,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
                 if(std::string(cuda_package) == "ccn2")
                   sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, padding, groups);
                 else
-                  sprintf(buf, "%s.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d)", cuda_package, nInputPlane, nOutputPlane, kW, kH, dW, dW, padding);
+                  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d)", cuda_package, std::string(cuda_package)=="nn" ? "MM" : "", nInputPlane, nOutputPlane, kW, kH, dW, dH, padding);
                 break;
             }
             case caffe::LayerParameter::POOLING:
@@ -128,7 +128,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
                 }
                 if(dW==0 || dH==0)
                 {
-                  dW = param.stride();
+                  dW = param.stride()==0;
                   dH = dW;
                 }
                 if(std::string(cuda_package) == "ccn2")
