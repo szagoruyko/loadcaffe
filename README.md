@@ -10,10 +10,7 @@ Work in progress! To load a network do:
 ```lua
 require 'loadcaffe'
 
-prototxt_name = 'deploy.prototxt'
-binary_name = 'bvlc_reference_caffenet.caffemodel'
-
-model = loadcaffe.load(prototxt_name, binary_name, 'ccn2')
+model = loadcaffe.load('deploy.prototxt', 'bvlc_alexnet.caffemodel', 'ccn2')
 ```
 
 Tested with cuda-convnet2:
