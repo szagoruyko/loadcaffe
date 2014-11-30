@@ -73,6 +73,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 
   ofs << "require '" << cuda_package << "'\n";
   ofs << "require 'cunn'\n";
+  ofs << "require 'ccn2'\n";
   ofs << "model = {}\n";
   if(std::string(cuda_package)=="ccn2")
     ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
@@ -151,9 +152,12 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	else
 	{
 	  char buf[1024];
-	  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d)", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-	  lines.emplace_back("zeropad", "nn.SpatialZeroPadding(0,0,1,1)");
+          // temporary use ccn2 because of the floor/ceil bug
+	  //sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d)", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+	  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+          lines.emplace_back("torch_transpose_bdwh", "nn.Transpose({1,4},{1,3},{1,2})");
 	  lines.emplace_back(layer.name(), buf);
+          lines.emplace_back("torch_transpose_bdwh", "nn.Transpose({4,1},{4,2},{4,3})");
 	}
 	break;
       }
@@ -181,7 +185,6 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	auto &param = layer.inner_product_param();
 	int nInputPlane = layer.blobs(0).width();
 	int nOutputPlane = param.num_output();
-	num_output = nOutputPlane;
 	char buf[1024];
 	sprintf(buf, "nn.Linear(%d, %d)", nInputPlane, nOutputPlane);
 	if(num_output != nInputPlane)
@@ -191,6 +194,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	  lines.emplace_back("torch_view", "nn.View(-1):setNumInputDims(3)");
 	}
 	lines.emplace_back(layer.name(), buf);
+	num_output = nOutputPlane;
 	break;
       }
       case caffe::LayerParameter::DROPOUT:
