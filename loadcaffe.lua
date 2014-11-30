@@ -5,8 +5,10 @@ local C = loadcaffe.C
 loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
   local cuda_package = cuda_package or 'nn'
   local handle = ffi.new('void*[1]')
-  local lua_name = 'file.lua'
+  local lua_name = prototxt_name..'.lua'
+  local old_val = handle[1]
   C['loadBinary'](handle, prototxt_name, binary_name)
+  if old_val == handle[1] then return end
   C['convertProtoToLua'](handle, lua_name, cuda_package)
   dofile(lua_name)
   local net = nn.Sequential()

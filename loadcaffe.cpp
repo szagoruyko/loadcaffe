@@ -23,8 +23,6 @@ using google::protobuf::io::FileInputStream;
 using google::protobuf::io::FileOutputStream;
 using google::protobuf::io::ZeroCopyInputStream;
 using google::protobuf::io::CodedInputStream;
-using google::protobuf::io::ZeroCopyOutputStream;
-using google::protobuf::io::CodedOutputStream;
 using google::protobuf::Message;
 
 
@@ -38,7 +36,7 @@ void destroyBinary(void** handle);
 
 bool ReadProtoFromTextFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
-    if(fd == 0)
+    if(fd < 0)
       return false;
     
     FileInputStream* input = new FileInputStream(fd);
@@ -51,7 +49,7 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
 
 bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
-    if(fd == 0)
+    if(fd < 0)
       return false;
     
     ZeroCopyInputStream* raw_input = new FileInputStream(fd);
@@ -77,132 +75,154 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
   ofs << "require 'cunn'\n";
   ofs << "model = {}\n";
   if(std::string(cuda_package)=="ccn2")
-    ofs<< "table.insert(model, {'tr1', nn.Transpose({1,4},{1,3},{1,2})})\n";
+    ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
   
   int num_output = netparam.input_dim_size();
-    for (int i=0; i<netparam.layers_size(); ++i)
+  for (int i=0; i<netparam.layers_size(); ++i)
+  {
+    std::vector<std::pair<std::string, std::string>> lines;
+    auto& layer = netparam.layers(i);
+    switch(layer.type())
     {
-	char buf[1024];
-	bool success = true;
-        bool insert_view = false;
-        switch(netparam.layers(i).type())
-        {
-            case caffe::LayerParameter::CONVOLUTION:
-            {
-                auto &param = netparam.layers(i).convolution_param();
-                int groups = param.group() == 0 ? 1 : param.group();
-                int nInputPlane = netparam.layers(i).blobs(0).channels()*groups;
-                int nOutputPlane = param.num_output();
-                num_output = nOutputPlane;
-                int kW = param.kernel_w();
-                int kH = param.kernel_h();
-                int dW = param.stride_w();
-                int dH = param.stride_h();
-                if(kW==0 || kH==0)
-                {
-                  kW = param.kernel_size();
-                  kH = kW;
-                }
-                if(dW==0 || dH==0)
-                {
-                  dW = param.stride();
-                  dH = dW;
-                }
-                int padding = param.pad();
-                if(std::string(cuda_package) == "ccn2")
-                  sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", nInputPlane, nOutputPlane, kW, dW, padding, groups);
-                else
-                  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d)", cuda_package, std::string(cuda_package)=="nn" ? "MM" : "", nInputPlane, nOutputPlane, kW, kH, dW, dH, padding);
-                break;
-            }
-            case caffe::LayerParameter::POOLING:
-            {
-                auto &param = netparam.layers(i).pooling_param();
-                std::string ptype = param.pool() == caffe::PoolingParameter::MAX ? "Max" : "Avg";
-                int kW = param.kernel_w();
-                int kH = param.kernel_h();
-                int dW = param.stride_w();
-                int dH = param.stride_h();
-                if(kW==0 || kH==0)
-                {
-                  kW = param.kernel_size();
-                  kH = kW;
-                }
-                if(dW==0 || dH==0)
-                {
-                  dW = param.stride();
-                  dH = dW;
-                }
-                if(std::string(cuda_package) == "ccn2")
-                  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
-                else
-                  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d)", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-                break;
-            }
-            case caffe::LayerParameter::RELU:
-            {
-	        sprintf(buf, "nn.ReLU()");
-                break;
-            }
-            case caffe::LayerParameter::LRN:
-            {
-              if(std::string(cuda_package) == "ccn2")
-              {
-                auto &param = netparam.layers(i).lrn_param();
-                int local_size = param.local_size();
-                float alpha = param.alpha();
-                float beta = param.beta();
-                sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
-              }
-              else
-              {
-                success = false;
-              }
-              break;
-            }
-            case caffe::LayerParameter::INNER_PRODUCT:
-            {
-                auto &param = netparam.layers(i).inner_product_param();
-                int nInputPlane = netparam.layers(i).blobs(0).width();
-                int nOutputPlane = param.num_output();
-                insert_view = num_output != nInputPlane;
-                num_output = nOutputPlane;
-                sprintf(buf, "nn.Linear(%d, %d)", nInputPlane, nOutputPlane);
-                break;
-            }
-            case caffe::LayerParameter::DROPOUT:
-            {
-                sprintf(buf, "nn.Dropout(%f)", netparam.layers(i).dropout_param().dropout_ratio());
-                break;
-            }
-            case caffe::LayerParameter::SOFTMAX_LOSS:
-            {
-	        sprintf(buf, "nn.SoftMax()");
-                break;
-            }
-            case caffe::LayerParameter::SOFTMAX:
-            {
-	        sprintf(buf, "nn.SoftMax()");
-                break;
-            }
-            default:
-            {
-                std::cout << "MODULE " << netparam.layers(i).name() << " UNDEFINED\n";
-		success = false;
-            }
-        }
-
-        if(insert_view)
-        {
-          if(std::string(cuda_package) == "ccn2")
-            ofs << "table.insert(model, {'reshape', nn.Transpose({4,1},{4,2},{4,3})})\n";
-          ofs << "table.insert(model, {'view', nn.View(-1):setNumInputDims(3)})\n";
-        }
-	if(success)
-	  ofs << "table.insert(model, {\"" << netparam.layers(i).name() << "\", " << buf << "})\n";
+      case caffe::LayerParameter::CONVOLUTION:
+      {
+	auto &param = layer.convolution_param();
+	int groups = param.group() == 0 ? 1 : param.group();
+	int nInputPlane = netparam.layers(i).blobs(0).channels()*groups;
+	int nOutputPlane = param.num_output();
+	num_output = nOutputPlane;
+	int kW = param.kernel_w();
+	int kH = param.kernel_h();
+	int dW = param.stride_w();
+	int dH = param.stride_h();
+	if(kW==0 || kH==0)
+	{
+	  kW = param.kernel_size();
+	  kH = kW;
+	}
+	if(dW==0 || dH==0)
+	{
+	  dW = param.stride();
+	  dH = dW;
+	}
+	int padding = param.pad();
+	if(std::string(cuda_package) == "ccn2")
+	{
+	  char buf[1024];
+	  sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", 
+	      nInputPlane, nOutputPlane, kW, dW, padding, groups);
+	  lines.emplace_back(layer.name(), buf);
+	}
 	else
-	  ofs << "-- module \"" << netparam.layers(i).name() << "\" not found\n";
+	{
+	  char buf[1024];
+	  const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
+	  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d)", 
+	      cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, padding);
+	  lines.emplace_back(layer.name(), buf);
+	}
+	break;
+      }
+      case caffe::LayerParameter::POOLING:
+      {
+	auto &param = layer.pooling_param();
+	std::string ptype = param.pool() == caffe::PoolingParameter::MAX ? "Max" : "Avg";
+	int kW = param.kernel_w();
+	int kH = param.kernel_h();
+	int dW = param.stride_w();
+	int dH = param.stride_h();
+	if(kW==0 || kH==0)
+	{
+	  kW = param.kernel_size();
+	  kH = kW;
+	}
+	if(dW==0 || dH==0)
+	{
+	  dW = param.stride();
+	  dH = dW;
+	}
+
+	if(std::string(cuda_package) == "ccn2")
+	{
+	  char buf[1024];
+	  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+	  lines.emplace_back(layer.name(), buf);
+	}
+	else
+	{
+	  char buf[1024];
+	  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d)", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+	  lines.emplace_back("zeropad", "nn.SpatialZeroPadding(0,0,1,1)");
+	  lines.emplace_back(layer.name(), buf);
+	}
+	break;
+      }
+      case caffe::LayerParameter::RELU:
+      {
+	lines.emplace_back(layer.name(), "nn.ReLU()");
+	break;
+      }
+      case caffe::LayerParameter::LRN:
+      {
+	if(std::string(cuda_package) == "ccn2")
+	{
+	  auto &param = layer.lrn_param();
+	  int local_size = param.local_size();
+	  float alpha = param.alpha();
+	  float beta = param.beta();
+	  char buf[1024];
+	  sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
+	  lines.emplace_back(layer.name(), buf);
+	}
+	break;
+      }
+      case caffe::LayerParameter::INNER_PRODUCT:
+      {
+	auto &param = layer.inner_product_param();
+	int nInputPlane = layer.blobs(0).width();
+	int nOutputPlane = param.num_output();
+	num_output = nOutputPlane;
+	char buf[1024];
+	sprintf(buf, "nn.Linear(%d, %d)", nInputPlane, nOutputPlane);
+	if(num_output != nInputPlane)
+	{
+	  if(std::string(cuda_package) == "ccn2")
+	    lines.emplace_back("torch_transpose_bdwh", "nn.Transpose({4,1},{4,2},{4,3})");
+	  lines.emplace_back("torch_view", "nn.View(-1):setNumInputDims(3)");
+	}
+	lines.emplace_back(layer.name(), buf);
+	break;
+      }
+      case caffe::LayerParameter::DROPOUT:
+      {
+	char buf[1024];
+	sprintf(buf, "nn.Dropout(%f)", netparam.layers(i).dropout_param().dropout_ratio());
+	lines.emplace_back(layer.name(), buf);
+	break;
+      }
+      case caffe::LayerParameter::SOFTMAX_LOSS:
+      {
+	lines.emplace_back(layer.name(), "nn.SoftMax()");
+	break;
+      }
+      case caffe::LayerParameter::SOFTMAX:
+      {
+	lines.emplace_back(layer.name(), "nn.SoftMax()");
+	break;
+      }
+      default:
+      {
+	std::cout << "MODULE " << netparam.layers(i).name() << " UNDEFINED\n";
+	break;
+      }
     }
+
+    if(!lines.empty())
+      for(auto& it: lines)
+	ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
+    else
+      ofs << "-- module '" << layer.name() << "' not found\n";
+  }
 }
 
 
@@ -213,11 +233,12 @@ void loadBinary(void** handle, const char* prototxt_name, const char* binary_nam
   ReadProtoFromTextFile(prototxt_name, netparam);
   bool success = ReadProtoFromBinaryFile(binary_name, netparam);
   if(success)
+  {
     std::cout << "Successfully loaded " << binary_name << std::endl;
+    handle[1] = netparam;
+  }
   else
     std::cout << "Couldn't load " << binary_name << std::endl;
-
-  handle[1] = netparam;
 }
 
 void destroyBinary(void** handle)
