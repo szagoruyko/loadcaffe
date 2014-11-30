@@ -23,9 +23,14 @@ Tested with cuda-convnet2:
 * bvlc_reference_caffenet
 * bvlc_alexnet
 * finetune_flickr_style
+* VGG_CNN_S
+* VGG_CNN_M
+* VGG_CNN_M_2048
+* VGG_CNN_M_1024
+* VGG_CNN_M_128
+* VGG_CNN_F
+* Models used by VGG in ILSVRC-2014, both 16 and 19-layer models
 
-Other nets as VGG_CNN can be loaded, but doesn't work yet, weights, however, can be used. We're going to fix this soon.
+For nets without local response normalization nn, cunn and cudnn can be used, however for max-pooling will be used ccn2.
 
-https://github.com/BVLC/caffe/wiki/Model-Zoo in plans.
-
-Rights to caffe.proto belong to University of California.
+Rights to caffe.proto belong to the University of California.
