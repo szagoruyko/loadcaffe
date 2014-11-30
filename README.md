@@ -31,8 +31,8 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [VGG_CNN_M_1024](https://gist.github.com/ksimonyan/f0f3d010e6d5f0100274)  | +  | - | - |
 | [VGG_CNN_M_128](https://gist.github.com/ksimonyan/976847408258292576a1)  | +  | - | - |
 | [VGG_CNN_F](https://gist.github.com/ksimonyan/a32c9063ec8e1118221a)  | +  | - | - |
-| [VGG ILSVRC-2014 16-layer](https://gist.github.com/ksimonyan/211839e770f7b538e2d8) | + | - | - |
-| [VGG ILSVRC-2014 19-layer](https://gist.github.com/ksimonyan/3785162f95cd2d5fee77) | + | - | - |
+| [VGG ILSVRC-2014 16-layer](https://gist.github.com/ksimonyan/211839e770f7b538e2d8) | + | - | + |
+| [VGG ILSVRC-2014 19-layer](https://gist.github.com/ksimonyan/3785162f95cd2d5fee77) | + | - | + |
 | [Network-in-Network Imagenet](https://gist.github.com/mavenlin/d802a5849de39225bcc6) | - | - | - |
 | [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | - | - |
 

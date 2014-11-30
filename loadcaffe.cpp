@@ -73,7 +73,6 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 
   ofs << "require '" << cuda_package << "'\n";
   ofs << "require 'cunn'\n";
-  ofs << "require 'ccn2'\n";
   ofs << "model = {}\n";
   if(std::string(cuda_package)=="ccn2")
     ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
@@ -89,7 +88,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
       {
 	auto &param = layer.convolution_param();
 	int groups = param.group() == 0 ? 1 : param.group();
-	int nInputPlane = netparam.layers(i).blobs(0).channels()*groups;
+	int nInputPlane = layer.blobs(0).channels()*groups;
 	int nOutputPlane = param.num_output();
 	num_output = nOutputPlane;
 	int kW = param.kernel_w();
@@ -106,20 +105,31 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	  dW = param.stride();
 	  dH = dW;
 	}
-	int padding = param.pad();
+	int pad_w = param.pad_w();
+	int pad_h = param.pad_h();
+        if(pad_w==0 || pad_h==0)
+        {
+          pad_w = param.pad();
+          pad_h = pad_w;
+        }
 	if(std::string(cuda_package) == "ccn2")
 	{
+          if(kW != kH || dW != dH || pad_w != pad_h)
+          {
+            std::cout << "ccn2 only supports square images!\n";
+            break;
+          }
 	  char buf[1024];
 	  sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)", 
-	      nInputPlane, nOutputPlane, kW, dW, padding, groups);
+	      nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
 	  lines.emplace_back(layer.name(), buf);
 	}
 	else
 	{
 	  char buf[1024];
 	  const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
-	  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d)", 
-	      cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, padding);
+	  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d)", 
+	      cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
 	  lines.emplace_back(layer.name(), buf);
 	}
 	break;
@@ -149,15 +159,11 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
 	  lines.emplace_back(layer.name(), buf);
 	}
-	else
+	else if(std::string(cuda_package) == "cudnn")
 	{
 	  char buf[1024];
-          // temporary use ccn2 because of the floor/ceil bug
-	  //sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d)", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-	  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
-          lines.emplace_back("torch_transpose_bdwh", "nn.Transpose({1,4},{1,3},{1,2})");
+	  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
 	  lines.emplace_back(layer.name(), buf);
-          lines.emplace_back("torch_transpose_bdwh", "nn.Transpose({4,1},{4,2},{4,3})");
 	}
 	break;
       }
