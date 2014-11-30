@@ -36,6 +36,6 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [Network-in-Network Imagenet](https://gist.github.com/mavenlin/d802a5849de39225bcc6) | - | - | - |
 | [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | - | - |
 
-For nets without local response normalization nn, cunn and cudnn can be used, however for max-pooling will be used ccn2.
+For nets without local response normalization cudnn can be used.
 
 Rights to caffe.proto belong to the University of California.
