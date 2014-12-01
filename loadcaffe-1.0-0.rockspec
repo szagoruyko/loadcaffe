@@ -3,7 +3,7 @@ version = "1.0-0"
 
 source = {
    url = "git://github.com/szagoruyko/loadcaffe",
-   tag = "1.0-0"
+   tag = "master"
 }
 
 description = {
