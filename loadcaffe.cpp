@@ -76,6 +76,8 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
   ofs << "model = {}\n";
   if(std::string(cuda_package)=="ccn2")
     ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
+  else if(std::string(cuda_package)=="nn")
+    ofs<< "require 'inn'\n";
   
   int num_output = netparam.input_dim_size();
   for (int i=0; i<netparam.layers_size(); ++i)
@@ -165,6 +167,12 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
 	  lines.emplace_back(layer.name(), buf);
 	}
+        else if(std::string(cuda_package) == "nn")
+        {
+          char buf[1024];
+	  sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+	  lines.emplace_back(layer.name(), buf);
+        }
 	break;
       }
       case caffe::LayerParameter::RELU:
@@ -231,7 +239,10 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
       for(auto& it: lines)
 	ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
     else
+    {
       ofs << "-- module '" << layer.name() << "' not found\n";
+      std::cout << "module '" << layer.name() << "' not found\n";
+    }
   }
 }
 
