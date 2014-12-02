@@ -91,7 +91,8 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	auto &param = layer.convolution_param();
 	int groups = param.group() == 0 ? 1 : param.group();
 	int nInputPlane = layer.blobs(0).channels()*groups;
-	int nOutputPlane = param.num_output();
+        int nOutputPlane = layer.blobs(0).num();
+	//int nOutputPlane = param.num_output();
 	num_output = nOutputPlane;
 	int kW = param.kernel_w();
 	int kH = param.kernel_h();
