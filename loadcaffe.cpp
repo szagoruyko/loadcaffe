@@ -250,8 +250,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 
 void loadBinary(void** handle, const char* prototxt_name, const char* binary_name)
 {
-  caffe::NetParameter* netparam = (caffe::NetParameter*)handle;
-  netparam = new caffe::NetParameter();
+  caffe::NetParameter* netparam = new caffe::NetParameter();
   ReadProtoFromTextFile(prototxt_name, netparam);
   bool success = ReadProtoFromBinaryFile(binary_name, netparam);
   if(success)
