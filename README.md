@@ -34,7 +34,7 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [VGG ILSVRC-2014 16-layer](https://gist.github.com/ksimonyan/211839e770f7b538e2d8) | + | + | + |
 | [VGG ILSVRC-2014 19-layer](https://gist.github.com/ksimonyan/3785162f95cd2d5fee77) | + | + | + |
 | [Network-in-Network Imagenet](https://gist.github.com/mavenlin/d802a5849de39225bcc6) | - | + | + |
-| [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | - | - |
+| [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | + | + |
 
 For nets without local response normalization cudnn can be used. If you want to use nn routines only, please install https://github.com/szagoruyko/imagine-nn, which has a ceil max-pooling. Note that it is not required for ccn2 and cudnn.
 
