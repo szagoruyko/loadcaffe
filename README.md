@@ -38,4 +38,6 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 
 For nets without local response normalization cudnn can be used. If you want to use nn routines only, please install https://github.com/szagoruyko/imagine-nn, which has a ceil max-pooling. Note that it is not required for ccn2 and cudnn.
 
+You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe in caffe in one torch session.
+
 Rights to caffe.proto belong to the University of California.
