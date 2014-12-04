@@ -34,6 +34,21 @@ table.insert(nets_list, {
   input = torch.rand(10,3,227,227):float(),
 })
 --]]
+table.insert(nets_list, {
+  name = 'VGG_ILSVRC_19',
+  proto = './models/3785162f95cd2d5fee77/VGG_ILSVRC_19_layers_deploy.prototxt',
+  binary = './models/3785162f95cd2d5fee77/VGG_ILSVRC_19_layers.caffemodel',
+  imsize = 224,
+  input = torch.rand(10,3,224,224):float(),
+})
+
+table.insert(nets_list, {
+  name = 'VGG_ILSVRC_16',
+  proto = './models/211839e770f7b538e2d8/VGG_ILSVRC_16_layers_deploy.prototxt',
+  binary = './models/211839e770f7b538e2d8/VGG_ILSVRC_16_layers.caffemodel',
+  imsize = 224,
+  input = torch.rand(10,3,224,224):float(),
+})
 
 for i,netprops in ipairs(nets_list) do
   net = caffe.Net(netprops.proto, netprops.binary)
