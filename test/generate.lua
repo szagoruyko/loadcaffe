@@ -52,6 +52,7 @@ table.insert(nets_list, {
 
 for i,netprops in ipairs(nets_list) do
   net = caffe.Net(netprops.proto, netprops.binary)
+  net:setPhaseTest()
   netprops.output = net:forward(netprops.input)
   net:reset()
 end
