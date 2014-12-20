@@ -187,11 +187,12 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
         int local_size = param.local_size();
         float alpha = param.alpha();
         float beta = param.beta();
+        float k = param.k();
         char buf[1024];
 	if(std::string(cuda_package) == "ccn2")
-	  sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
+	  sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
         else
-	  sprintf(buf, "inn.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
+	  sprintf(buf, "inn.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
         lines.emplace_back(layer.name(), buf);
 	break;
       }

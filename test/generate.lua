@@ -33,7 +33,16 @@ table.insert(nets_list, {
   imsize = 227,
   input = torch.rand(10,3,227,227):float(),
 })
+
+table.insert(nets_list, {
+  name = 'VGG_CNN_S',
+  proto = './models/fd8800eeb36e276cd6f9/VGG_CNN_S_deploy.prototxt',
+  binary = './models/fd8800eeb36e276cd6f9/VGG_CNN_S.caffemodel',
+  imsize = 224,
+  input = torch.rand(10,3,224,224):float()
+})
 --]]
+
 table.insert(nets_list, {
   name = 'VGG_ILSVRC_19',
   proto = './models/3785162f95cd2d5fee77/VGG_ILSVRC_19_layers_deploy.prototxt',
