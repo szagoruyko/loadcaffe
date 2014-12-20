@@ -183,16 +183,16 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
       }
       case caffe::LayerParameter::LRN:
       {
+        auto &param = layer.lrn_param();
+        int local_size = param.local_size();
+        float alpha = param.alpha();
+        float beta = param.beta();
+        char buf[1024];
 	if(std::string(cuda_package) == "ccn2")
-	{
-	  auto &param = layer.lrn_param();
-	  int local_size = param.local_size();
-	  float alpha = param.alpha();
-	  float beta = param.beta();
-	  char buf[1024];
 	  sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
-	  lines.emplace_back(layer.name(), buf);
-	}
+        else
+	  sprintf(buf, "inn.SpatialCrossResponseNormalization(%d, %.6f, %.4f)", local_size, alpha, beta);
+        lines.emplace_back(layer.name(), buf);
 	break;
       }
       case caffe::LayerParameter::INNER_PRODUCT:
