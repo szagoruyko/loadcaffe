@@ -36,7 +36,7 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [Network-in-Network Imagenet](https://gist.github.com/mavenlin/d802a5849de39225bcc6) | - | + | + |
 | [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | + | + |
 
-If you want to use nn and BDHW routines only, please install https://github.com/szagoruyko/imagine-nn, which has a ceil max-pooling local response normalization. Note that it is not required for ccn2.
+If you want to use nn and BDHW routines only, please install https://github.com/szagoruyko/imagine-nn, which has ceil max-pooling and local response normalization. Note that it is not required for ccn2.
 
 You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe in caffe in one torch session.
 
