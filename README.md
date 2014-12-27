@@ -9,6 +9,12 @@ There is no Caffe dependency, only protobuf has to be installed. In Ubuntu do:
 sudo apt-get install libprotobuf-dev
 ```
 
+Then install the package itself do:
+
+```
+luarocks install loadcaffe
+```
+
 To load a network do:
 
 ```lua
@@ -39,5 +45,7 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 If you want to use nn and BDHW routines only, please install https://github.com/szagoruyko/imagine-nn, which has ceil max-pooling and local response normalization. Note that it is not required for ccn2.
 
 You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe in caffe in one torch session.
+
+An example of using the package is in examples/mnist_lenet.lua. After running script to train lenet model in Caffe you can easily load and test it in Torch7.
 
 Rights to caffe.proto belong to the University of California.
