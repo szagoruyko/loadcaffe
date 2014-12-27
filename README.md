@@ -41,11 +41,12 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [VGG ILSVRC-2014 19-layer](https://gist.github.com/ksimonyan/3785162f95cd2d5fee77) | + | + | + |
 | [Network-in-Network Imagenet](https://gist.github.com/mavenlin/d802a5849de39225bcc6) | - | + | + |
 | [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | + | + |
+| MNIST LeNet | - | + | + |
 
 If you want to use nn and BDHW routines only, please install https://github.com/szagoruyko/imagine-nn, which has ceil max-pooling and local response normalization. Note that it is not required for ccn2.
 
 You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe in caffe in one torch session.
 
-An example of using the package is in examples/mnist_lenet.lua. After running script to train lenet model in Caffe you can easily load and test it in Torch7.
+An example of using the package is in [examples/mnist_lenet.lua](examples/mnist_lenet.lua). After running script to train lenet model in Caffe you can easily load and test it in Torch7.
 
 Rights to caffe.proto belong to the University of California.
