@@ -76,7 +76,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
   ofs << "model = {}\n";
   if(std::string(cuda_package)=="ccn2")
     ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
-  else if(std::string(cuda_package)=="nn")
+  else if(std::string(cuda_package)=="nn" || std::string(cuda_package)=="cudnn")
     ofs<< "require 'inn'\n";
   
   int num_output = netparam.input_dim_size();
@@ -131,8 +131,8 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	{
 	  char buf[1024];
 	  const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
-	  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d)", 
-	      cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+	  sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d, %d)", 
+	      cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
 	  lines.emplace_back(layer.name(), buf);
 	}
 	break;

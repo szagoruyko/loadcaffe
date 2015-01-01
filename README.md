@@ -27,10 +27,10 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 
 | Network  | ccn2 | cunn | cudnn |
 | ------------- | :-------------: | :-------: | :---: |
-| bvlc_alexnet | + | - | - |
-| bvlc_reference_caffenet | + | - | - |
-| bvlc_reference_rcnn_ilsvrc13 | + | - | - |
-| [finetune_flickr_style](https://gist.github.com/sergeyk/034c6ac3865563b69e60) | + | - | - |
+| bvlc_alexnet | + | - | + |
+| bvlc_reference_caffenet | + | - | + |
+| bvlc_reference_rcnn_ilsvrc13 | + | - | + |
+| [finetune_flickr_style](https://gist.github.com/sergeyk/034c6ac3865563b69e60) | + | - | + |
 | [VGG_CNN_S](https://gist.github.com/ksimonyan/fd8800eeb36e276cd6f9)  | +  | + | + |
 | [VGG_CNN_M](https://gist.github.com/ksimonyan/f194575702fae63b2829)  | +  | + | + |
 | [VGG_CNN_M_2048](https://gist.github.com/ksimonyan/78047f3591446d1d7b91)  | +  | + | + |
