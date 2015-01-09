@@ -65,9 +65,22 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
 }
 
 
+enum PACKAGE_TYPE {
+  CCN2, NN, CUDNN
+};
+
+
 void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package)
 {
   const caffe::NetParameter netparam = *(const caffe::NetParameter*)handle[1];
+
+  PACKAGE_TYPE cuda_package_type = CCN2;
+  if(std::string(cuda_package) == "ccn2")
+    cuda_package_type = CCN2;
+  else if(std::string(cuda_package) == "nn")
+    cuda_package_type = NN;
+  else if(std::string(cuda_package) == "cudnn")
+    cuda_package_type = CUDNN;
 
   std::ofstream ofs (lua_name);
 
@@ -115,7 +128,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
           pad_w = param.pad();
           pad_h = pad_w;
         }
-	if(std::string(cuda_package) == "ccn2")
+	if(cuda_package_type == CCN2)
 	{
           if(kW != kH || dW != dH || pad_w != pad_h)
           {
@@ -156,29 +169,33 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	  dH = dW;
 	}
 
-	if(std::string(cuda_package) == "ccn2")
+	char buf[1024];
+	switch(cuda_package_type)
 	{
-	  char buf[1024];
-	  sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
-	  lines.emplace_back(layer.name(), buf);
+	  case CCN2:
+	    sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+	    break;
+	  case CUDNN:
+	    sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+	    break;
+	  case NN:
+	    sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+	    break;
 	}
-	else if(std::string(cuda_package) == "cudnn")
-	{
-	  char buf[1024];
-	  sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-	  lines.emplace_back(layer.name(), buf);
-	}
-        else if(std::string(cuda_package) == "nn")
-        {
-          char buf[1024];
-	  sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-	  lines.emplace_back(layer.name(), buf);
-        }
+	lines.emplace_back(layer.name(), buf);
 	break;
       }
       case caffe::LayerParameter::RELU:
       {
-	lines.emplace_back(layer.name(), "nn.ReLU()");
+	switch(cuda_package_type)
+	{
+	  case CUDNN:
+	    lines.emplace_back(layer.name(), "cudnn.ReLU(true)");
+	    break;
+	  default:
+	    lines.emplace_back(layer.name(), "nn.ReLU()");
+	    break;
+	}
 	break;
       }
       case caffe::LayerParameter::LRN:
