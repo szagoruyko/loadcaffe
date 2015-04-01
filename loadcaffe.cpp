@@ -86,7 +86,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 
   ofs << "require '" << cuda_package << "'\n";
   ofs << "require 'cunn'\n";
-  ofs << "model = {}\n";
+  ofs << "local model = {}\n";
   if(std::string(cuda_package)=="ccn2")
     ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
   else if(std::string(cuda_package)=="nn" || std::string(cuda_package)=="cudnn")
@@ -263,6 +263,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
       std::cout << "module '" << layer.name() << "' not found\n";
     }
   }
+  ofs << "return model";
 }
 
 

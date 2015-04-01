@@ -17,7 +17,7 @@ loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
   C.convertProtoToLua(handle, lua_name, cuda_package)
 
   -- executes the script, defining global 'model' module list
-  dofile(lua_name)
+  local model = dofile(lua_name)
 
   -- goes over the list, copying weights from caffe blobs to torch tensor
   local net = nn.Sequential()
@@ -38,8 +38,5 @@ loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
   end
   C.destroyBinary(handle)
   --print(net)
-
-  -- remove global module list
-  model = nil
   return net
 end
