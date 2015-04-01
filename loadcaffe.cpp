@@ -99,7 +99,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
     auto& layer = netparam.layers(i);
     switch(layer.type())
     {
-      case caffe::LayerParameter::CONVOLUTION:
+      case caffe::V1LayerParameter::CONVOLUTION:
       {
 	auto &param = layer.convolution_param();
 	int groups = param.group() == 0 ? 1 : param.group();
@@ -150,7 +150,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	}
 	break;
       }
-      case caffe::LayerParameter::POOLING:
+      case caffe::V1LayerParameter::POOLING:
       {
 	auto &param = layer.pooling_param();
 	std::string ptype = param.pool() == caffe::PoolingParameter::MAX ? "Max" : "Avg";
@@ -185,7 +185,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	lines.emplace_back(layer.name(), buf);
 	break;
       }
-      case caffe::LayerParameter::RELU:
+      case caffe::V1LayerParameter::RELU:
       {
 	switch(cuda_package_type)
 	{
@@ -198,7 +198,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	}
 	break;
       }
-      case caffe::LayerParameter::LRN:
+      case caffe::V1LayerParameter::LRN:
       {
         auto &param = layer.lrn_param();
         int local_size = param.local_size();
@@ -213,7 +213,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
         lines.emplace_back(layer.name(), buf);
 	break;
       }
-      case caffe::LayerParameter::INNER_PRODUCT:
+      case caffe::V1LayerParameter::INNER_PRODUCT:
       {
 	auto &param = layer.inner_product_param();
 	int nInputPlane = layer.blobs(0).width();
@@ -230,19 +230,19 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 	num_output = nOutputPlane;
 	break;
       }
-      case caffe::LayerParameter::DROPOUT:
+      case caffe::V1LayerParameter::DROPOUT:
       {
 	char buf[1024];
 	sprintf(buf, "nn.Dropout(%f)", netparam.layers(i).dropout_param().dropout_ratio());
 	lines.emplace_back(layer.name(), buf);
 	break;
       }
-      case caffe::LayerParameter::SOFTMAX_LOSS:
+      case caffe::V1LayerParameter::SOFTMAX_LOSS:
       {
 	lines.emplace_back(layer.name(), "nn.SoftMax()");
 	break;
       }
-      case caffe::LayerParameter::SOFTMAX:
+      case caffe::V1LayerParameter::SOFTMAX:
       {
 	lines.emplace_back(layer.name(), "nn.SoftMax()");
 	break;
