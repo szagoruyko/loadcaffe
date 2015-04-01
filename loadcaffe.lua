@@ -8,13 +8,13 @@ loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
 
   -- loads caffe model in memory and keeps handle to it in ffi
   local old_val = handle[1]
-  C['loadBinary'](handle, prototxt_name, binary_name)
+  C.loadBinary(handle, prototxt_name, binary_name)
   if old_val == handle[1] then return end
 
   -- transforms caffe prototxt to torch lua file model description and 
   -- writes to a script file
   local lua_name = prototxt_name..'.lua'
-  C['convertProtoToLua'](handle, lua_name, cuda_package)
+  C.convertProtoToLua(handle, lua_name, cuda_package)
 
   -- executes the script, defining global 'model' module list
   dofile(lua_name)
@@ -27,7 +27,7 @@ loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
     if item[2].weight then
       local w = torch.FloatTensor()
       local bias = torch.FloatTensor()
-      C['loadModule'](handle, item[1], w:cdata(), bias:cdata())
+      C.loadModule(handle, item[1], w:cdata(), bias:cdata())
       if cuda_package == 'ccn2' then
         w = w:transpose(1,4):transpose(1,3):transpose(1,2)
       end
@@ -36,8 +36,8 @@ loadcaffe.load = function(prototxt_name, binary_name, cuda_package)
     end
     net:add(item[2])
   end
-  C['destroyBinary'](handle)
-  print(net)
+  C.destroyBinary(handle)
+  --print(net)
 
   -- remove global module list
   model = nil
