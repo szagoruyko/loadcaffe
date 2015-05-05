@@ -29,7 +29,11 @@ using google::protobuf::Message;
 extern "C" {
 void loadBinary(void** handle, const char* prototxt_name, const char* binary_name);
 void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package);
+void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package);
+void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package);
 void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias);
+void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias);
+void loadModuleV1(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias);
 void destroyBinary(void** handle);
 }
 
@@ -73,7 +77,15 @@ enum PACKAGE_TYPE {
 void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package)
 {
   const caffe::NetParameter netparam = *(const caffe::NetParameter*)handle[1];
+  if (netparam.layers_size() > 0)
+      convertProtoToLuaV1(netparam, lua_name, cuda_package);
+  else
+      convertProtoToLuaV2(netparam, lua_name, cuda_package);
+}
 
+
+void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package)
+{
   PACKAGE_TYPE cuda_package_type = CCN2;
   if(std::string(cuda_package) == "ccn2")
     cuda_package_type = CCN2;
@@ -91,7 +103,201 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
     ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
   else if(std::string(cuda_package)=="nn" || std::string(cuda_package)=="cudnn")
     ofs<< "require 'inn'\n";
-  
+
+  int num_output = netparam.input_dim_size();
+  for (int i=0; i<netparam.layers_size(); ++i)
+  {
+    std::vector<std::pair<std::string, std::string>> lines;
+    auto& layer = netparam.layers(i);
+    switch(layer.type())
+    {
+      case caffe::V1LayerParameter::CONVOLUTION:
+      {
+        auto &param = layer.convolution_param();
+        int groups = param.group() == 0 ? 1 : param.group();
+        int nInputPlane = layer.blobs(0).channels()*groups;
+        int nOutputPlane = layer.blobs(0).num();
+        //int nOutputPlane = param.num_output();
+        num_output = nOutputPlane;
+        int kW = param.kernel_w();
+        int kH = param.kernel_h();
+        int dW = param.stride_w();
+        int dH = param.stride_h();
+        if(kW==0 || kH==0)
+        {
+          kW = param.kernel_size();
+          kH = kW;
+        }
+        if(dW==0 || dH==0)
+        {
+          dW = param.stride();
+          dH = dW;
+        }
+        int pad_w = param.pad_w();
+        int pad_h = param.pad_h();
+        if(pad_w==0 || pad_h==0)
+        {
+          pad_w = param.pad();
+          pad_h = pad_w;
+        }
+        if(cuda_package_type == CCN2)
+        {
+          if(kW != kH || dW != dH || pad_w != pad_h)
+          {
+            std::cout << "ccn2 only supports square images!\n";
+            break;
+          }
+          char buf[1024];
+          sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
+          lines.emplace_back(layer.name(), buf);
+        }
+        else
+        {
+          char buf[1024];
+          const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
+          sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+              cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+          lines.emplace_back(layer.name(), buf);
+        }
+        break;
+      }
+      case caffe::V1LayerParameter::POOLING:
+      {
+        auto &param = layer.pooling_param();
+        std::string ptype = param.pool() == caffe::PoolingParameter::MAX ? "Max" : "Avg";
+        int kW = param.kernel_w();
+        int kH = param.kernel_h();
+        int dW = param.stride_w();
+        int dH = param.stride_h();
+        if(kW==0 || kH==0)
+        {
+          kW = param.kernel_size();
+          kH = kW;
+        }
+        if(dW==0 || dH==0)
+        {
+          dW = param.stride();
+          dH = dW;
+        }
+
+        char buf[1024];
+        switch(cuda_package_type)
+        {
+          case CCN2:
+            sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+            break;
+          case CUDNN:
+            sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+            break;
+          case NN:
+            sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+            break;
+        }
+        lines.emplace_back(layer.name(), buf);
+        break;
+      }
+      case caffe::V1LayerParameter::RELU:
+      {
+        switch(cuda_package_type)
+        {
+          case CUDNN:
+            lines.emplace_back(layer.name(), "cudnn.ReLU(true)");
+            break;
+          default:
+            lines.emplace_back(layer.name(), "nn.ReLU()");
+            break;
+        }
+        break;
+      }
+      case caffe::V1LayerParameter::LRN:
+      {
+        auto &param = layer.lrn_param();
+        int local_size = param.local_size();
+        float alpha = param.alpha();
+        float beta = param.beta();
+        float k = param.k();
+        char buf[1024];
+        if(std::string(cuda_package) == "ccn2")
+          sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
+        else
+          sprintf(buf, "inn.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
+        lines.emplace_back(layer.name(), buf);
+        break;
+      }
+      case caffe::V1LayerParameter::INNER_PRODUCT:
+      {
+        auto &param = layer.inner_product_param();
+        int nInputPlane = layer.blobs(0).width();
+        int nOutputPlane = param.num_output();
+        char buf[1024];
+        sprintf(buf, "nn.Linear(%d, %d)", nInputPlane, nOutputPlane);
+        if(num_output != nInputPlane)
+        {
+          if(std::string(cuda_package) == "ccn2")
+            lines.emplace_back("torch_transpose_bdwh", "nn.Transpose({4,1},{4,2},{4,3})");
+          lines.emplace_back("torch_view", "nn.View(-1):setNumInputDims(3)");
+        }
+        lines.emplace_back(layer.name(), buf);
+        num_output = nOutputPlane;
+        break;
+      }
+      case caffe::V1LayerParameter::DROPOUT:
+      {
+        char buf[1024];
+        sprintf(buf, "nn.Dropout(%f)", layer.dropout_param().dropout_ratio());
+        lines.emplace_back(layer.name(), buf);
+        break;
+      }
+      case caffe::V1LayerParameter::SOFTMAX_LOSS:
+      {
+        lines.emplace_back(layer.name(), "nn.SoftMax()");
+        break;
+      }
+      case caffe::V1LayerParameter::SOFTMAX:
+      {
+        lines.emplace_back(layer.name(), "nn.SoftMax()");
+        break;
+      }
+      default:
+      {
+        std::cout << "MODULE " << layer.name() << " UNDEFINED\n";
+        break;
+      }
+    }
+    if(!lines.empty())
+      for(auto& it: lines)
+        ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
+    else
+    {
+      ofs << "-- module '" << layer.name() << "' not found\n";
+      std::cout << "module '" << layer.name() << "' not found\n";
+    }
+  }
+  ofs << "return model";
+}
+
+
+void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package)
+{
+  PACKAGE_TYPE cuda_package_type = CCN2;
+  if(std::string(cuda_package) == "ccn2")
+    cuda_package_type = CCN2;
+  else if(std::string(cuda_package) == "nn")
+    cuda_package_type = NN;
+  else if(std::string(cuda_package) == "cudnn")
+    cuda_package_type = CUDNN;
+
+  std::ofstream ofs (lua_name);
+
+  ofs << "require '" << cuda_package << "'\n";
+  ofs << "require 'cunn'\n";
+  ofs << "local model = {}\n";
+  if(std::string(cuda_package)=="ccn2")
+    ofs<< "table.insert(model, {'torch_transpose_dwhb', nn.Transpose({1,4},{1,3},{1,2})})\n";
+  else if(std::string(cuda_package)=="nn" || std::string(cuda_package)=="cudnn")
+    ofs<< "require 'inn'\n";
+
   int num_output = netparam.input_shape_size() * 4;
 
   for (int i=0; i<netparam.layer_size(); ++i)
@@ -145,7 +351,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
         const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
         sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
             cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
-	  lines.emplace_back(layer.name(), buf);
+        lines.emplace_back(layer.name(), buf);
       }
     }
     if(layer.type() == "Pooling")
@@ -175,10 +381,10 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
           break;
         case CUDNN:
           sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-	    break;
-	  case NN:
-	    sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
-	    break;
+          break;
+        case NN:
+          sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+          break;
       }
       lines.emplace_back(layer.name(), buf);
     }
@@ -190,8 +396,8 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
           lines.emplace_back(layer.name(), "cudnn.ReLU(true)");
           break;
         default:
-	    lines.emplace_back(layer.name(), "nn.ReLU()");
-	    break;
+          lines.emplace_back(layer.name(), "nn.ReLU()");
+          break;
       }
     }
     if(layer.type() == "LRN")
@@ -227,7 +433,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
     if(layer.type() == "Dropout")
     {
       char buf[1024];
-      sprintf(buf, "nn.Dropout(%f)", netparam.layers(i).dropout_param().dropout_ratio());
+      sprintf(buf, "nn.Dropout(%f)", layer.dropout_param().dropout_ratio());
       lines.emplace_back(layer.name(), buf);
     }
     if(layer.type()=="SoftmaxWithLoss")
@@ -241,7 +447,7 @@ void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_pac
 
     if(!lines.empty())
       for(auto& it: lines)
-	ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
+        ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
     else
     {
       ofs << "-- module '" << layer.name() << "' not found\n";
@@ -282,6 +488,39 @@ void loadModule(const void** handle, const char* name, THFloatTensor* weight, TH
 
   const caffe::NetParameter* netparam = (const caffe::NetParameter*)handle[1];
 
+  if (netparam->layers_size() > 0)
+      loadModuleV1(netparam, name, weight, bias);
+  else
+      loadModuleV2(netparam, name, weight, bias);
+}
+
+
+void loadModuleV1(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias)
+{
+  int n = netparam->layers_size();
+  for(int i=0; i<n; ++i)
+  {
+    auto &layer = netparam->layers(i);
+    if(std::string(name) == layer.name())
+    {
+      int nInputPlane = layer.blobs(0).channels();
+      int nOutputPlane = layer.blobs(0).num();
+      int kW = layer.blobs(0).width();
+      int kH = layer.blobs(0).height();
+      printf("%s: %d %d %d %d\n", name, nOutputPlane, nInputPlane, kW, kH);
+
+      THFloatTensor_resize4d(weight, nOutputPlane, nInputPlane, kW, kH);
+      memcpy(THFloatTensor_data(weight), layer.blobs(0).data().data(), sizeof(float)*nOutputPlane*nInputPlane*kW*kH);
+
+      THFloatTensor_resize1d(bias, layer.blobs(1).data_size());
+      memcpy(THFloatTensor_data(bias), layer.blobs(1).data().data(), sizeof(float)*layer.blobs(1).data_size());
+    }
+  }
+}
+
+
+void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias)
+{
   int n = netparam->layer_size();
   for(int i=0; i<n; ++i)
   {
