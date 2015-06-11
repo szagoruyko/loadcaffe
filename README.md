@@ -41,6 +41,10 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [VGG ILSVRC-2014 19-layer](https://gist.github.com/ksimonyan/3785162f95cd2d5fee77) | + | + | + |
 | [Network-in-Network Imagenet](https://gist.github.com/mavenlin/d802a5849de39225bcc6) | - | + | + |
 | [Network-in-Network CIFAR-10](https://gist.github.com/mavenlin/e56253735ef32c3c296d) | - | + | + |
+| [VGG16_SalObjSub](https://gist.github.com/jimmie33/27c1c0a7736ba66c2395) | + | + | + |
+| [AlexNex_SalObjSub](https://gist.github.com/jimmie33/0585ed9428dc5222981f) | - | + | + | 
+| [Binary Hash Codes](https://gist.github.com/kevinlin311tw/266d4150a1db5810398e) | - | + | + |
+| [Oxford 102 Flowers](https://gist.github.com/jgoode21/0179e52305ca768a601f) | - | + | + |
 | MNIST LeNet | - | + | + |
 
 If you want to use nn and BDHW routines only, please install https://github.com/szagoruyko/imagine-nn, which has ceil max-pooling and local response normalization. Note that it is not required for ccn2.
