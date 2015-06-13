@@ -205,7 +205,33 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
             lines.emplace_back(layer.name(), "cudnn.ReLU(true)");
             break;
           default:
-            lines.emplace_back(layer.name(), "nn.ReLU()");
+            lines.emplace_back(layer.name(), "nn.ReLU(true)");
+            break;
+        }
+        break;
+      }
+      case caffe::V1LayerParameter::TANH:
+      {
+        switch(cuda_package_type)
+        {
+          case CUDNN:
+            lines.emplace_back(layer.name(), "cudnn.Tanh(true)");
+            break;
+          default:
+            lines.emplace_back(layer.name(), "nn.Tanh()");
+            break;
+        }
+        break;
+      }
+      case caffe::V1LayerParameter::SIGMOID:
+      {
+        switch(cuda_package_type)
+        {
+          case CUDNN:
+            lines.emplace_back(layer.name(), "cudnn.Sigmoid(true)");
+            break;
+          default:
+            lines.emplace_back(layer.name(), "nn.Sigmoid()");
             break;
         }
         break;
@@ -390,15 +416,24 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
     }
     if(layer.type() == "ReLU")
     {
-      switch(cuda_package_type)
-      {
-        case CUDNN:
-          lines.emplace_back(layer.name(), "cudnn.ReLU(true)");
-          break;
-        default:
-          lines.emplace_back(layer.name(), "nn.ReLU()");
-          break;
-      }
+      if(cuda_package_type == CUDNN)
+	lines.emplace_back(layer.name(), "cudnn.ReLU(true)");
+      else
+        lines.emplace_back(layer.name(), "nn.ReLU(true)");
+    }
+    if(layer.type() == "Sigmoid")
+    {
+      if(cuda_package_type == CUDNN)
+	lines.emplace_back(layer.name(), "cudnn.Sigmoid(true)");
+      else
+        lines.emplace_back(layer.name(), "nn.Sigmoid()");
+    }
+    if(layer.type() == "Tanh")
+    {
+      if(cuda_package_type == CUDNN)
+	lines.emplace_back(layer.name(), "cudnn.Tanh(true)");
+      else
+        lines.emplace_back(layer.name(), "nn.Tanh()");
     }
     if(layer.type() == "LRN")
     {
