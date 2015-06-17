@@ -152,12 +152,23 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
               nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
           lines.emplace_back(layer.name(), buf);
         }
+        else if(cuda_package_type == NN)
+        {
+          if(groups != 1)
+          {
+            std::cout << "nn supports no groups!\n";
+            break;
+          }
+          char buf[1024];
+          sprintf(buf, "nn.SpatialConvolutionMM(%d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+          lines.emplace_back(layer.name(), buf);
+        }
         else
         {
           char buf[1024];
-          const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
-          sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-              cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+          sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
           lines.emplace_back(layer.name(), buf);
         }
         break;
@@ -371,12 +382,23 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
             nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
         lines.emplace_back(layer.name(), buf);
       }
+      else if(cuda_package_type == NN)
+      {
+        if(groups != 1)
+        {
+          std::cout << "nn supports no groups!\n";
+          break;
+        }
+        char buf[1024];
+        sprintf(buf, "nn.SpatialConvolutionMM(%d, %d, %d, %d, %d, %d, %d, %d)",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+        lines.emplace_back(layer.name(), buf);
+      }
       else
       {
         char buf[1024];
-        const char* mm_or_not = std::string(cuda_package)=="nn" ? "MM" : "";
-        sprintf(buf, "%s.SpatialConvolution%s(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-            cuda_package, mm_or_not, nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+        sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
         lines.emplace_back(layer.name(), buf);
       }
     }
