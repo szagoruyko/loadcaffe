@@ -19,7 +19,6 @@ dependencies = {
    "torch >= 7.0",
    "nn",
    "cunn",
-   "ccn2",
    "inn"
 }
 
