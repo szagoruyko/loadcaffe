@@ -26,4 +26,5 @@ for i,netprops in ipairs(nets_list) do
     g = output[{{1,10},{}}]
 
     print(netprops.name, dtype, (r-g):abs():mean())
+    collectgarbage()
 end
