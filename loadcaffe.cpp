@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <TH/TH.h>
+#include <locale.h>
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
@@ -94,6 +95,7 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
   else if(std::string(cuda_package) == "cudnn")
     cuda_package_type = CUDNN;
 
+  setlocale(LC_NUMERIC,"C");
   std::ofstream ofs (lua_name);
 
   ofs << "require '" << cuda_package << "'\n";
@@ -314,6 +316,7 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
   else if(std::string(cuda_package) == "cudnn")
     cuda_package_type = CUDNN;
 
+  setlocale(LC_NUMERIC,"C");
   std::ofstream ofs (lua_name);
 
   ofs << "require '" << cuda_package << "'\n";
