@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <TH/TH.h>
+#include <locale>
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
@@ -76,6 +77,7 @@ enum PACKAGE_TYPE {
 
 void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package)
 {
+  std::locale::global(std::locale());
   const caffe::NetParameter netparam = *(const caffe::NetParameter*)handle[1];
   if (netparam.layers_size() > 0)
       convertProtoToLuaV1(netparam, lua_name, cuda_package);
