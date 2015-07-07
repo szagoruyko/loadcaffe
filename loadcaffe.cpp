@@ -309,8 +309,8 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
         ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
     else
     {
-      ofs << "-- module '" << layer.name() << "' not found\n";
-      std::cout << "module '" << layer.name() << "' not found\n";
+      ofs << "-- warning: module '" << layer.name() << "' not found\n";
+      std::cout << "warning: module '" << layer.name() << "' not found\n";
     }
   }
   ofs << "return model";
@@ -509,8 +509,8 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
         ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
     else
     {
-      ofs << "-- module '" << layer.name() << "' not found\n";
-      std::cout << "module '" << layer.name() << "' not found\n";
+      ofs << "-- warning: module '" << layer.name() << "' not found\n";
+      std::cout << "warning: module '" << layer.name() << "' not found\n";
     }
   }
   ofs << "return model";
