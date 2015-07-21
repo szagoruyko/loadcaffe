@@ -25,7 +25,7 @@ model = loadcaffe.load('deploy.prototxt', 'bvlc_alexnet.caffemodel', 'ccn2')
 
 Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 
-| Network  | ccn2 | cunn | cudnn |
+| Network  | ccn2 | nn | cudnn |
 | ------------- | :-------------: | :-------: | :---: |
 | bvlc_alexnet | + | - | + |
 | bvlc_reference_caffenet | + | - | + |
@@ -48,10 +48,10 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [Age&Gender](http://www.openu.ac.il/home/hassner/projects/cnn_agegender/) | + | + | + |
 | MNIST LeNet | - | + | + |
 
-If you want to use nn and BDHW routines only, please install https://github.com/szagoruyko/imagine-nn, which has ceil max-pooling and local response normalization. Note that it is not required for ccn2.
+NN support means both CPU and GPU backends.
 
 You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe in caffe in one torch session.
 
-An example of using the package is in [examples/mnist_lenet.lua](examples/mnist_lenet.lua). After running script to train lenet model in Caffe you can easily load and test it in Torch7.
+An example of using the package is in [examples/mnist_lenet.lua](examples/mnist_lenet.lua). After running script to train lenet model in Caffe you can easily load and test it in Torch7 on CPU and GPU (with 'cuda' as a first arguments)
 
 Rights to caffe.proto belong to the University of California.
