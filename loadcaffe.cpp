@@ -178,11 +178,12 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
       case caffe::V1LayerParameter::POOLING:
       {
         auto &param = layer.pooling_param();
-        std::string ptype = param.pool() == caffe::PoolingParameter::MAX ? "Max" : "Avg";
         int kW = param.kernel_w();
         int kH = param.kernel_h();
         int dW = param.stride_w();
         int dH = param.stride_h();
+        int padW = param.pad_w();
+        int padH = param.pad_h();
         if(kW==0 || kH==0)
         {
           kW = param.kernel_size();
@@ -197,14 +198,29 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
         char buf[1024];
         switch(cuda_package_type)
         {
-          case CCN2:
-            sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+          case CCN2: // ceil mode by default
+            if(param.pool() == caffe::PoolingParameter::MAX)
+              sprintf(buf, "ccn2.SpatialMaxPooling(%d, %d)", kW, dW);
+            else if(param.pool() == caffe::PoolingParameter::AVE)
+              sprintf(buf, "ccn2.SpatialAvgPooling(%d, %d)", kW, dW);
+            else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
+              THError("Stochastic pooling is not implemented in DHWB format");
             break;
           case CUDNN:
-            sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+            if(param.pool() == caffe::PoolingParameter::MAX)
+              sprintf(buf, "cudnn.SpatialMaxPooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
+            else if(param.pool() == caffe::PoolingParameter::AVE)
+              sprintf(buf, "cudnn.SpatialAveragePooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
+            else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
+              sprintf(buf, "inn.SpatialStochasticPooling(%d, %d, %d, %d)", kW, kH, dW, dH);
             break;
           case NN:
-            sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+            if(param.pool() == caffe::PoolingParameter::MAX)
+              sprintf(buf, "nn.SpatialMaxPooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
+            else if(param.pool() == caffe::PoolingParameter::AVE)
+              sprintf(buf, "nn.SpatialAveragePooling(%d, %d, %d, %d):ceil()", kW, kH, dW, dH); // padding is not supported yet
+            else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
+              sprintf(buf, "inn.SpatialStochasticPooling(%d, %d, %d, %d)", kW, kH, dW, dH);
             break;
         }
         lines.emplace_back(layer.name(), buf);
@@ -412,6 +428,8 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       int kH = param.kernel_h();
       int dW = param.stride_w();
       int dH = param.stride_h();
+      int padW = param.pad_w();
+      int padH = param.pad_h();
       if(kW==0 || kH==0)
       {
         kW = param.kernel_size();
@@ -426,14 +444,29 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       char buf[1024];
       switch(cuda_package_type)
       {
-        case CCN2:
-          sprintf(buf, "ccn2.Spatial%sPooling(%d, %d)", ptype.c_str(), kW, dW);
+        case CCN2: // ceil mode by default
+          if(param.pool() == caffe::PoolingParameter::MAX)
+            sprintf(buf, "ccn2.SpatialMaxPooling(%d, %d)", kW, dW);
+          else if(param.pool() == caffe::PoolingParameter::AVE)
+            sprintf(buf, "ccn2.SpatialAvgPooling(%d, %d)", kW, dW);
+          else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
+            THError("Stochastic pooling is not implemented in DHWB format");
           break;
         case CUDNN:
-          sprintf(buf, "%s.Spatial%sPooling(%d, %d, %d, %d):ceil()", cuda_package, ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+          if(param.pool() == caffe::PoolingParameter::MAX)
+            sprintf(buf, "cudnn.SpatialMaxPooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
+          else if(param.pool() == caffe::PoolingParameter::AVE)
+            sprintf(buf, "cudnn.SpatialAveragePooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
+          else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
+            sprintf(buf, "inn.SpatialStochasticPooling(%d, %d, %d, %d)", kW, kH, dW, dH);
           break;
         case NN:
-          sprintf(buf, "inn.Spatial%sPooling(%d, %d, %d, %d)", ptype=="Avg" ? "Average" : "Max", kW, kH, dW, dH);
+          if(param.pool() == caffe::PoolingParameter::MAX)
+            sprintf(buf, "nn.SpatialMaxPooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
+          else if(param.pool() == caffe::PoolingParameter::AVE)
+            sprintf(buf, "nn.SpatialAveragePooling(%d, %d, %d, %d):ceil()", kW, kH, dW, dH); // padding is not supported yet
+          else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
+            sprintf(buf, "inn.SpatialStochasticPooling(%d, %d, %d, %d)", kW, kH, dW, dH);
           break;
       }
       lines.emplace_back(layer.name(), buf);
