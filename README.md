@@ -9,13 +9,13 @@ There is no Caffe dependency, only protobuf has to be installed. In Ubuntu do:
 sudo apt-get install libprotobuf-dev protobuf-compiler
 ```
 
-Then install the package itself do:
+Then install the package itself:
 
 ```
 luarocks install loadcaffe
 ```
 
-To load a network do:
+Load a network:
 
 ```lua
 require 'loadcaffe'
@@ -50,7 +50,7 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 
 NN support means both CPU and GPU backends.
 
-You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe in caffe in one torch session.
+You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe and caffe in one torch session.
 
 An example of using the package is in [examples/mnist_lenet.lua](examples/mnist_lenet.lua). After running script to train lenet model in Caffe you can easily load and test it in Torch7 on CPU and GPU (with 'cuda' as a first arguments)
 
