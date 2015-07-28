@@ -218,7 +218,7 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
             if(param.pool() == caffe::PoolingParameter::MAX)
               sprintf(buf, "nn.SpatialMaxPooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
             else if(param.pool() == caffe::PoolingParameter::AVE)
-              sprintf(buf, "nn.SpatialAveragePooling(%d, %d, %d, %d):ceil()", kW, kH, dW, dH); // padding is not supported yet
+              sprintf(buf, "inn.SpatialAveragePooling(%d, %d, %d, %d)", kW, kH, dW, dH); // padding is not supported yet
             else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
               sprintf(buf, "inn.SpatialStochasticPooling(%d, %d, %d, %d)", kW, kH, dW, dH);
             break;
@@ -464,7 +464,7 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
           if(param.pool() == caffe::PoolingParameter::MAX)
             sprintf(buf, "nn.SpatialMaxPooling(%d, %d, %d, %d, %d, %d):ceil()", kW, kH, dW, dH, padW, padH);
           else if(param.pool() == caffe::PoolingParameter::AVE)
-            sprintf(buf, "nn.SpatialAveragePooling(%d, %d, %d, %d):ceil()", kW, kH, dW, dH); // padding is not supported yet
+            sprintf(buf, "inn.SpatialAveragePooling(%d, %d, %d, %d)", kW, kH, dW, dH); // padding is not supported yet
           else if(param.pool() == caffe::PoolingParameter::STOCHASTIC)
             sprintf(buf, "inn.SpatialStochasticPooling(%d, %d, %d, %d)", kW, kH, dW, dH);
           break;
