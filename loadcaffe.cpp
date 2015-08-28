@@ -194,6 +194,11 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
           dW = param.stride();
           dH = dW;
         }
+        if(padW==0 && padH==0)
+        {
+          padW = param.pad();
+          padH = padW;
+        }
 
         char buf[1024];
         switch(cuda_package_type)
@@ -439,6 +444,11 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       {
         dW = param.stride();
         dH = dW;
+      }
+      if(padW==0 && padH==0)
+      {
+        padW = param.pad();
+        padH = padW;
       }
 
       char buf[1024];
