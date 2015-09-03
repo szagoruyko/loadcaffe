@@ -18,8 +18,6 @@ Loading Caffe networks without caffe dependency
 dependencies = {
    "torch >= 7.0",
    "nn",
-   "cunn",
-   "inn"
 }
 
 build = {
