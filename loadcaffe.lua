@@ -16,7 +16,11 @@ loadcaffe.load = function(prototxt_name, binary_name, backend)
   local lua_name = prototxt_name..'.lua'
   C.convertProtoToLua(handle, lua_name, backend)
 
-  -- executes the script, defining global 'model' module list
+  -- executes the script
+  local model_definition = io.open(lua_name):read'*all'
+  if (model_definition:find'inn%.') then
+    require 'inn'
+  end
   local model = dofile(lua_name)
 
   -- goes over the list, copying weights from caffe blobs to torch tensor
