@@ -48,6 +48,8 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [Age&Gender](http://www.openu.ac.il/home/hassner/projects/cnn_agegender/) | + | + | + |
 | MNIST LeNet | - | + | + |
 
+Loading googlenet is supported by https://github.com/soumith/inception.torch
+
 NN support means both CPU and GPU backends.
 
 You can also use Caffe inside Torch with this: https://github.com/szagoruyko/torch-caffe-binding However you can't use both loadcaffe and caffe in one torch session.
