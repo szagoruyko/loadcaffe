@@ -310,12 +310,18 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
       }
       case caffe::V1LayerParameter::SOFTMAX_LOSS:
       {
-        lines.emplace_back(layer.name(), "nn.SoftMax()");
+        if(std::string(cuda_package) == "cudnn")
+          lines.emplace_back(layer.name(), "cudnn.SoftMax()");
+        else
+          lines.emplace_back(layer.name(), "nn.SoftMax()");
         break;
       }
       case caffe::V1LayerParameter::SOFTMAX:
       {
-        lines.emplace_back(layer.name(), "nn.SoftMax()");
+        if(std::string(cuda_package) == "cudnn")
+            lines.emplace_back(layer.name(), "cudnn.SoftMax()");
+        else
+            lines.emplace_back(layer.name(), "nn.SoftMax()");
         break;
       }
       default:
@@ -538,11 +544,19 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
     }
     if(layer.type()=="SoftmaxWithLoss")
     {
-      lines.emplace_back(layer.name(), "nn.SoftMax()");
+      if(std::string(cuda_package) == "cudnn")
+        lines.emplace_back(layer.name(), "cudnn.SoftMax()");
+      else
+        lines.emplace_back(layer.name(), "nn.SoftMax()");
+      break;
     }
     if(layer.type()=="Softmax")
     {
-      lines.emplace_back(layer.name(), "nn.SoftMax()");
+      if(std::string(cuda_package) == "cudnn")
+        lines.emplace_back(layer.name(), "cudnn.SoftMax()");
+      else
+        lines.emplace_back(layer.name(), "nn.SoftMax()");
+      break;
     }
 
     if(!lines.empty())
