@@ -9,6 +9,12 @@ There is no Caffe dependency, only protobuf has to be installed. In Ubuntu do:
 sudo apt-get install libprotobuf-dev protobuf-compiler
 ```
 
+In OS X:
+
+```
+brew install protobuf
+```
+
 Then install the package itself:
 
 ```
