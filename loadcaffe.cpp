@@ -159,7 +159,7 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
             break;
           }
           char buf[1024];
-          sprintf(buf, "nn.SpatialConvolutionMM(%d, %d, %d, %d, %d, %d, %d, %d)",
+          sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
               nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
           lines.emplace_back(layer.name(), buf);
         }
@@ -409,7 +409,7 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
           break;
         }
         char buf[1024];
-        sprintf(buf, "nn.SpatialConvolutionMM(%d, %d, %d, %d, %d, %d, %d, %d)",
+        sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
             nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
         lines.emplace_back(layer.name(), buf);
       }
