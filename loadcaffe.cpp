@@ -278,7 +278,7 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
         if(std::string(cuda_package) == "ccn2")
           sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
 	else if(std::string(cuda_package) == "nn")
-	  sprintf(buf, "inn.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
+	  sprintf(buf, "nn.SpatialCrossMapLRN(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
 	else if(std::string(cuda_package) == "cudnn")
 	  sprintf(buf, "cudnn.SpatialCrossMapLRN(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
         lines.emplace_back(layer.name(), buf);
@@ -515,7 +515,7 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       if(std::string(cuda_package) == "ccn2")
         sprintf(buf, "ccn2.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
       else if(std::string(cuda_package) == "nn")
-        sprintf(buf, "inn.SpatialCrossResponseNormalization(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
+	sprintf(buf, "nn.SpatialCrossMapLRN(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
       else if(std::string(cuda_package) == "cudnn")
 	sprintf(buf, "cudnn.SpatialCrossMapLRN(%d, %.6f, %.4f, %f)", local_size, alpha, beta, k);
       lines.emplace_back(layer.name(), buf);
