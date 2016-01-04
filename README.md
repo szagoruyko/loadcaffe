@@ -50,7 +50,7 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | [VGG16_SalObjSub](https://gist.github.com/jimmie33/27c1c0a7736ba66c2395) | + | + | + |
 | [AlexNex_SalObjSub](https://gist.github.com/jimmie33/0585ed9428dc5222981f) | + | - | + | 
 | [Binary Hash Codes](https://gist.github.com/kevinlin311tw/266d4150a1db5810398e) | + | - | + |
-| [Oxford 102 Flowers](https://gist.github.com/jgoode21/0179e52305ca768a601f) | + | - | + |
+| [Oxford 102 Flowers](https://gist.github.com/jimgoo/0179e52305ca768a601f) | + | - | + |
 | [Age&Gender](http://www.openu.ac.il/home/hassner/projects/cnn_agegender/) | + | + | + |
 | MNIST LeNet | - | + | + |
 
