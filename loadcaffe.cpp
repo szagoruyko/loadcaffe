@@ -370,8 +370,9 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
     {
       auto &param = layer.convolution_param();
       int groups = param.group() == 0 ? 1 : param.group();
-      int nInputPlane = layer.blobs(0).shape().dim(1)*groups;
-      int nOutputPlane = layer.blobs(0).shape().dim(0);
+      auto &wB = layer.blobs(0);
+      int nInputPlane = (wB.has_shape() ? wB.shape().dim(1) : wB.channels())*groups;
+      int nOutputPlane = wB.has_shape() ? wB.shape().dim(0) : wB.num();
       //int nOutputPlane = param.num_output();
       num_output = nOutputPlane;
       int kW = param.kernel_w();
@@ -523,7 +524,8 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
     if(layer.type() == "InnerProduct")
     {
       auto &param = layer.inner_product_param();
-      int nInputPlane = layer.blobs(0).shape().dim(1);
+      auto &wB = layer.blobs(0);
+      int nInputPlane = wB.has_shape() ? wB.shape().dim(1) : wB.width();
       int nOutputPlane = param.num_output();
       char buf[1024];
       sprintf(buf, "nn.Linear(%d, %d)", nInputPlane, nOutputPlane);
@@ -641,8 +643,33 @@ void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloat
     auto &layer = netparam->layer(i);
     if(std::string(name) == layer.name())
     {
-      int nInputPlane = layer.blobs(0).shape().dim(1);
-      int nOutputPlane = layer.blobs(0).shape().dim(0);
+      auto &wB = layer.blobs(0);
+      int nInputPlane, nOutputPlane, kW, kH;
+      if(wB.has_shape())
+      {
+	nInputPlane = wB.shape().dim(1);
+	nOutputPlane = wB.shape().dim(0);
+	if(layer.type() != "InnerProduct")
+	{
+	  kW = wB.shape().dim(3);
+	  kH = wB.shape().dim(2);
+	}
+      }
+      else
+      {
+	if(layer.type() == "InnerProduct")
+	{
+	  nInputPlane = wB.width();
+	  nOutputPlane = wB.height();
+	}
+	else
+	{
+	  nInputPlane = wB.channels();
+	  nOutputPlane = wB.num();
+	  kW = wB.width();
+	  kH = wB.height();
+	}
+      }
       if(layer.type() == "InnerProduct")
       {
         printf("%s: %d %d %d %d\n", name, 1, 1, nInputPlane, nOutputPlane);
@@ -651,8 +678,6 @@ void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloat
       }
       else
       {
-	int kW = layer.blobs(0).shape().dim(3);
-	int kH = layer.blobs(0).shape().dim(2);
         printf("%s: %d %d %d %d\n", name, nOutputPlane, nInputPlane, kW, kH);
         THFloatTensor_resize4d(weight, nOutputPlane, nInputPlane, kW, kH);
         memcpy(THFloatTensor_data(weight), layer.blobs(0).data().data(), sizeof(float)*nOutputPlane*nInputPlane*kW*kH);
