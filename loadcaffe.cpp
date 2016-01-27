@@ -643,8 +643,6 @@ void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloat
     {
       int nInputPlane = layer.blobs(0).shape().dim(1);
       int nOutputPlane = layer.blobs(0).shape().dim(0);
-      int kW = layer.blobs(0).shape().dim(3);
-      int kH = layer.blobs(0).shape().dim(2);
       if(layer.type() == "InnerProduct")
       {
         printf("%s: %d %d %d %d\n", name, 1, 1, nInputPlane, nOutputPlane);
@@ -653,6 +651,8 @@ void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloat
       }
       else
       {
+	int kW = layer.blobs(0).shape().dim(3);
+	int kH = layer.blobs(0).shape().dim(2);
         printf("%s: %d %d %d %d\n", name, nOutputPlane, nInputPlane, kW, kH);
         THFloatTensor_resize4d(weight, nOutputPlane, nInputPlane, kW, kH);
         memcpy(THFloatTensor_data(weight), layer.blobs(0).data().data(), sizeof(float)*nOutputPlane*nInputPlane*kW*kH);
