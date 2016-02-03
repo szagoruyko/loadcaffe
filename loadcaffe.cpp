@@ -124,20 +124,20 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
         int dH = param.stride_h();
         if(kW==0 || kH==0)
         {
-          kW = param.kernel_size();
-          kH = kW;
+          kW = param.kernel_size(1);
+          kH = param.kernel_size(2);
         }
         if(dW==0 || dH==0)
         {
-          dW = param.stride();
-          dH = dW;
+          dW = param.stride(1);
+          dH = param.stride(2);
         }
         int pad_w = param.pad_w();
         int pad_h = param.pad_h();
         if(pad_w==0 || pad_h==0)
         {
-          pad_w = param.pad();
-          pad_h = pad_w;
+          pad_w = param.pad(1);
+          pad_h = param.pad(2);
         }
         if(cuda_package_type == CCN2)
         {
@@ -381,21 +381,25 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       int dH = param.stride_h();
       if(kW==0 || kH==0)
       {
-        kW = param.kernel_size();
-        kH = kW;
+        kW = param.kernel_size(1);
+        kH = param.kernel_size(2);
       }
       if(dW==0 || dH==0)
       {
-        dW = param.stride();
-        dH = dW;
+        dW = param.stride(1);
+        dH = param.stride(2);
       }
       int pad_w = param.pad_w();
       int pad_h = param.pad_h();
       if(pad_w==0 || pad_h==0)
       {
-        pad_w = param.pad();
-        pad_h = pad_w;
+        pad_w = param.pad(1);
+        pad_h = param.pad(2);
       }
+      bool bias_term = true;
+      if(param.has_bias_term())
+        bias_term = param.bias_term();
+      std::string bias_term_str = bias_term ? "" : ":noBias()";
       if(cuda_package_type == CCN2)
       {
         if(kW != kH || dW != dH || pad_w != pad_h)
@@ -423,8 +427,8 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       else
       {
         char buf[1024];
-        sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+        sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)%s",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups, bias_term_str.c_str());
         lines.emplace_back(layer.name(), buf);
       }
     }
