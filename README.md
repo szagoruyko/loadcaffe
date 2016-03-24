@@ -1,9 +1,9 @@
 loadcaffe
 =========
 
-Load Caffe networks in Torch7
+Load Caffe networks in **Torch7** http://torch.ch
 
-There is no Caffe dependency, only protobuf has to be installed. In Ubuntu do:
+**Install torch first**. There is no Caffe dependency, only protobuf has to be installed. In Ubuntu do:
 
 ```
 sudo apt-get install libprotobuf-dev protobuf-compiler
