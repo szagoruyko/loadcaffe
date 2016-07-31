@@ -62,4 +62,6 @@ You can also use Caffe inside Torch with this: https://github.com/szagoruyko/tor
 
 An example of using the package is in [examples/mnist_lenet.lua](examples/mnist_lenet.lua). After running script to train lenet model in Caffe you can easily load and test it in Torch7 on CPU and GPU (with 'cuda' as a first arguments)
 
+Some of ImageNet networks are validated to give reported accuracy in torch in https://github.com/szagoruyko/imagenet-validation.torch
+
 Rights to caffe.proto belong to the University of California.
