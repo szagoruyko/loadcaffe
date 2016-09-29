@@ -55,6 +55,7 @@ Models from Caffe [Model Zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo):
 | MNIST LeNet | - | + | + |
 
 Loading googlenet is supported by https://github.com/soumith/inception.torch
+For other models with non-sequential structure check https://github.com/nhynes/caffegraph
 
 NN support means both CPU and GPU backends.
 
