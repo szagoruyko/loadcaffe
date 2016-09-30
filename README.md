@@ -21,6 +21,8 @@ Then install the package itself:
 luarocks install loadcaffe
 ```
 
+In Ubuntu 16.04 you need to use gcc-5: ```CC=gcc-5 CXX=g++-5 luarocks install loadcaffe```
+
 Load a network:
 
 ```lua
