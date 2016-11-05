@@ -9,7 +9,18 @@
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
+#ifdef _MSC_VER
+#include <io.h>
+#define LOADCAFFE_EXPORT __declspec(dllexport)
+#define open  _open
+#define close _close
+#define O_RDONLY     _O_RDONLY
+#define O_RDONLY_BIN _O_RDONLY | _O_BINARY
+#else
 #include <unistd.h>
+#define LOADCAFFE_EXPORT
+#define O_RDONLY_BIN  O_RDONLY
+#endif
 #include <string.h>
 #include <TH/TH.h>
 #include <locale>
@@ -28,14 +39,14 @@ using google::protobuf::Message;
 
 
 extern "C" {
-void loadBinary(void** handle, const char* prototxt_name, const char* binary_name);
-void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package);
-void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package);
-void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package);
-void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias);
-void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias);
-void loadModuleV1(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias);
-void destroyBinary(void** handle);
+LOADCAFFE_EXPORT void loadBinary(void** handle, const char* prototxt_name, const char* binary_name);
+LOADCAFFE_EXPORT void convertProtoToLua(void** handle, const char* lua_name, const char* cuda_package);
+LOADCAFFE_EXPORT void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package);
+LOADCAFFE_EXPORT void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_name, const char* cuda_package);
+LOADCAFFE_EXPORT void loadModule(const void** handle, const char* name, THFloatTensor* weight, THFloatTensor* bias);
+LOADCAFFE_EXPORT void loadModuleV2(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias);
+LOADCAFFE_EXPORT void loadModuleV1(const caffe::NetParameter* netparam, const char* name, THFloatTensor* weight, THFloatTensor* bias);
+LOADCAFFE_EXPORT void destroyBinary(void** handle);
 }
 
 
@@ -53,7 +64,7 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
 
 
 bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
-    int fd = open(filename, O_RDONLY);
+    int fd = open(filename, O_RDONLY_BIN);
     if(fd < 0)
       return false;
     
