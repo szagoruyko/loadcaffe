@@ -117,6 +117,7 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
   int num_output = netparam.input_dim_size();
   for (int i=0; i<netparam.layers_size(); ++i)
   {
+    bool ignore = false;
     std::vector<std::pair<std::string, std::string>> lines;
     auto& layer = netparam.layers(i);
     switch(layer.type())
@@ -335,6 +336,11 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
             lines.emplace_back(layer.name(), "nn.SoftMax()");
         break;
       }
+      case caffe::V1LayerParameter::DATA:
+      {
+        ignore = true;
+        break;
+      }
       default:
       {
         std::cout << "MODULE " << layer.name() << " UNDEFINED\n";
@@ -344,7 +350,7 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
     if(!lines.empty())
       for(auto& it: lines)
         ofs << "table.insert(model, {'" << it.first << "', " << it.second << "})\n";
-    else
+    else if(!ignore)
     {
       ofs << "-- warning: module '" << layer.name() << " [type " << layer.type() << "]" << "' not found\n";
       std::cout << "warning: module '" << layer.name() << " [type " << layer.type() << "]" << "' not found\n";
