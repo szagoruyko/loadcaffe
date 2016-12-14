@@ -54,7 +54,7 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
     if(fd < 0)
       return false;
-    
+
     FileInputStream* input = new FileInputStream(fd);
     bool success = google::protobuf::TextFormat::Parse(input, proto);
     delete input;
@@ -67,13 +67,13 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY_BIN);
     if(fd < 0)
       return false;
-    
+
     ZeroCopyInputStream* raw_input = new FileInputStream(fd);
     CodedInputStream* coded_input = new CodedInputStream(raw_input);
     coded_input->SetTotalBytesLimit(1073741824, 536870912);
-    
+
     bool success = proto->ParseFromCodedStream(coded_input);
-    
+
     delete coded_input;
     delete raw_input;
     close(fd);
@@ -436,6 +436,65 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
         char buf[1024];
         sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
             nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+        lines.emplace_back(layer.name(), buf);
+      }
+    }
+    if(layer.type() == "Deconvolution")
+    {
+      auto &param = layer.convolution_param();
+      int groups = param.group() == 0 ? 1 : param.group();
+      auto &wB = layer.blobs(0);
+      int nInputPlane = (wB.has_shape() ? wB.shape().dim(1) : wB.channels())*groups;
+      int nOutputPlane = wB.has_shape() ? wB.shape().dim(0) : wB.num();
+      //int nOutputPlane = param.num_output();
+      num_output = nOutputPlane;
+      int kW = param.kernel_w();
+      int kH = param.kernel_h();
+      int dW = param.stride_w();
+      int dH = param.stride_h();
+      if(kW==0 || kH==0)
+      {
+        kW = param.kernel_size();
+        kH = kW;
+      }
+      if(dW==0 || dH==0)
+      {
+        dW = param.stride();
+        dH = dW;
+      }
+      int pad_w = param.pad_w();
+      int pad_h = param.pad_h();
+      if(pad_w==0 || pad_h==0)
+      {
+        pad_w = param.pad();
+        pad_h = pad_w;
+      }
+      if(cuda_package_type == CCN2)
+      {
+        std::cout << "ccn2 does not support SpatialFullConvolution !\n";
+        break;
+      }
+      else if(cuda_package_type == NN)
+      {
+        if(groups != 1)
+        {
+          std::cout << "nn supports no groups!\n";
+          break;
+        }
+        char buf[1024];
+        sprintf(buf, "nn.SpatialFullConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+        lines.emplace_back(layer.name(), buf);
+      }
+      else
+      {
+        if(groups != 1)
+        {
+          std::cout << "warning: cudnn supports no groups for SpatialFullConvolution !\n";
+        }
+        char buf[1024];
+        sprintf(buf, "cudnn.SpatialFullConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
         lines.emplace_back(layer.name(), buf);
       }
     }
