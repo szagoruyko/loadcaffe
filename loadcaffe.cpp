@@ -561,7 +561,6 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
         lines.emplace_back(layer.name(), "cudnn.SoftMax()");
       else
         lines.emplace_back(layer.name(), "nn.SoftMax()");
-      break;
     }
     if(layer.type()=="Softmax")
     {
@@ -569,7 +568,6 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
         lines.emplace_back(layer.name(), "cudnn.SoftMax()");
       else
         lines.emplace_back(layer.name(), "nn.SoftMax()");
-      break;
     }
 
     if(!lines.empty())
