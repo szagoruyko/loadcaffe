@@ -54,7 +54,7 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
     if(fd < 0)
       return false;
-    
+
     FileInputStream* input = new FileInputStream(fd);
     bool success = google::protobuf::TextFormat::Parse(input, proto);
     delete input;
@@ -67,13 +67,13 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY_BIN);
     if(fd < 0)
       return false;
-    
+
     ZeroCopyInputStream* raw_input = new FileInputStream(fd);
     CodedInputStream* coded_input = new CodedInputStream(raw_input);
     coded_input->SetTotalBytesLimit(1073741824, 536870912);
-    
+
     bool success = proto->ParseFromCodedStream(coded_input);
-    
+
     delete coded_input;
     delete raw_input;
     close(fd);
@@ -135,51 +135,82 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
         int dH = param.stride_h();
         if(kW==0 || kH==0)
         {
-          kW = param.kernel_size();
+          if(param.kernel_size().size() > 0) {
+            kW = param.kernel_size(0);
+          } else {
+            std::cout << "error: module '" << layer.name() << " [type " << layer.type() << "]" << "' is missing kernel size specification\n";
+            exit(1);
+          }
           kH = kW;
         }
         if(dW==0 || dH==0)
         {
-          dW = param.stride();
+          if(param.stride().size() > 0) {
+            dW = param.stride(0);
+          } else {
+            dW = 1; // Default stride
+          }
           dH = dW;
         }
         int pad_w = param.pad_w();
         int pad_h = param.pad_h();
         if(pad_w==0 || pad_h==0)
         {
-          pad_w = param.pad();
+          if(param.pad().size() > 0) {
+            pad_w = param.pad(0);
+          } else {
+            pad_w = 0; // Default padding
+          }
           pad_h = pad_w;
         }
-        if(cuda_package_type == CCN2)
-        {
-          if(kW != kH || dW != dH || pad_w != pad_h)
-          {
-            std::cout << "ccn2 only supports square images!\n";
-            break;
-          }
-          char buf[1024];
-          sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
-              nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
-          lines.emplace_back(layer.name(), buf);
+        int dilationW = 1;
+        int dilationH = 1;
+        if(param.dilation().size() > 0) {
+          dilationW = param.dilation(0);
+          dilationH = dilationW;
         }
-        else if(cuda_package_type == NN)
-        {
+        if(dilationW > 1 || dilationH > 1) {
           if(groups != 1)
           {
             std::cout << "nn supports no groups!\n";
             break;
           }
           char buf[1024];
-          sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
-              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+          sprintf(buf, "nn.SpatialDilatedConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, dilationW, dilationH);
           lines.emplace_back(layer.name(), buf);
-        }
-        else
-        {
-          char buf[1024];
-          sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
-          lines.emplace_back(layer.name(), buf);
+        } else {
+          if(cuda_package_type == CCN2)
+          {
+            if(kW != kH || dW != dH || pad_w != pad_h)
+            {
+              std::cout << "ccn2 only supports square images!\n";
+              break;
+            }
+            char buf[1024];
+            sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
+                nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
+            lines.emplace_back(layer.name(), buf);
+          }
+          else if(cuda_package_type == NN)
+          {
+            if(groups != 1)
+            {
+              std::cout << "nn supports no groups!\n";
+              break;
+            }
+            char buf[1024];
+            sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
+                nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+            lines.emplace_back(layer.name(), buf);
+          }
+          else
+          {
+            char buf[1024];
+            sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+                nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+            lines.emplace_back(layer.name(), buf);
+          }
         }
         break;
       }
@@ -392,51 +423,82 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       int dH = param.stride_h();
       if(kW==0 || kH==0)
       {
-        kW = param.kernel_size();
+        if(param.kernel_size().size() > 0) {
+          kW = param.kernel_size(0);
+        } else {
+          std::cout << "error: module '" << layer.name() << " [type " << layer.type() << "]" << "' is missing kernel size specification\n";
+          exit(1);
+        }
         kH = kW;
       }
       if(dW==0 || dH==0)
       {
-        dW = param.stride();
+        if(param.stride().size() > 0) {
+          dW = param.stride(0);
+        } else {
+          dW = 1; // Default stride
+        }
         dH = dW;
       }
       int pad_w = param.pad_w();
       int pad_h = param.pad_h();
       if(pad_w==0 || pad_h==0)
       {
-        pad_w = param.pad();
+        if(param.pad().size() > 0) {
+          pad_w = param.pad(0);
+        } else {
+          pad_w = 0; // Default padding
+        }
         pad_h = pad_w;
       }
-      if(cuda_package_type == CCN2)
-      {
-        if(kW != kH || dW != dH || pad_w != pad_h)
-        {
-          std::cout << "ccn2 only supports square images!\n";
-          break;
-        }
-        char buf[1024];
-        sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
-        lines.emplace_back(layer.name(), buf);
+      int dilationW = 1;
+      int dilationH = 1;
+      if(param.dilation().size() > 0) {
+        dilationW = param.dilation(0);
+        dilationH = dilationW;
       }
-      else if(cuda_package_type == NN)
-      {
+      if(dilationW > 1 || dilationH > 1) {
         if(groups != 1)
         {
           std::cout << "nn supports no groups!\n";
           break;
         }
         char buf[1024];
-        sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+        sprintf(buf, "nn.SpatialDilatedConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, dilationW, dilationH);
         lines.emplace_back(layer.name(), buf);
-      }
-      else
-      {
-        char buf[1024];
-        sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
-        lines.emplace_back(layer.name(), buf);
+      } else {
+        if(cuda_package_type == CCN2)
+        {
+          if(kW != kH || dW != dH || pad_w != pad_h)
+          {
+            std::cout << "ccn2 only supports square images!\n";
+            break;
+          }
+          char buf[1024];
+          sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
+          lines.emplace_back(layer.name(), buf);
+        }
+        else if(cuda_package_type == NN)
+        {
+          if(groups != 1)
+          {
+            std::cout << "nn supports no groups!\n";
+            break;
+          }
+          char buf[1024];
+          sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+          lines.emplace_back(layer.name(), buf);
+        }
+        else
+        {
+          char buf[1024];
+          sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+          lines.emplace_back(layer.name(), buf);
+        }
       }
     }
     if(layer.type() == "Pooling")
