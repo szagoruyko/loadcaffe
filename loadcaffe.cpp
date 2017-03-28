@@ -163,36 +163,54 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
           }
           pad_h = pad_w;
         }
-        if(cuda_package_type == CCN2)
-        {
-          if(kW != kH || dW != dH || pad_w != pad_h)
-          {
-            std::cout << "ccn2 only supports square images!\n";
-            break;
-          }
-          char buf[1024];
-          sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
-              nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
-          lines.emplace_back(layer.name(), buf);
+        int dilationW = 1;
+        int dilationH = 1;
+        if(param.dilation().size() > 0) {
+          dilationW = param.dilation(0);
+          dilationH = dilationW;
         }
-        else if(cuda_package_type == NN)
-        {
+        if(dilationW > 1 || dilationH > 1) {
           if(groups != 1)
           {
             std::cout << "nn supports no groups!\n";
             break;
           }
           char buf[1024];
-          sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
-              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+          sprintf(buf, "nn.SpatialDilatedConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, dilationW, dilationH);
           lines.emplace_back(layer.name(), buf);
-        }
-        else
-        {
-          char buf[1024];
-          sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
-          lines.emplace_back(layer.name(), buf);
+        } else {
+          if(cuda_package_type == CCN2)
+          {
+            if(kW != kH || dW != dH || pad_w != pad_h)
+            {
+              std::cout << "ccn2 only supports square images!\n";
+              break;
+            }
+            char buf[1024];
+            sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
+                nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
+            lines.emplace_back(layer.name(), buf);
+          }
+          else if(cuda_package_type == NN)
+          {
+            if(groups != 1)
+            {
+              std::cout << "nn supports no groups!\n";
+              break;
+            }
+            char buf[1024];
+            sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
+                nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+            lines.emplace_back(layer.name(), buf);
+          }
+          else
+          {
+            char buf[1024];
+            sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+                nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+            lines.emplace_back(layer.name(), buf);
+          }
         }
         break;
       }
@@ -433,36 +451,54 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
         }
         pad_h = pad_w;
       }
-      if(cuda_package_type == CCN2)
-      {
-        if(kW != kH || dW != dH || pad_w != pad_h)
-        {
-          std::cout << "ccn2 only supports square images!\n";
-          break;
-        }
-        char buf[1024];
-        sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
-        lines.emplace_back(layer.name(), buf);
+      int dilationW = 1;
+      int dilationH = 1;
+      if(param.dilation().size() > 0) {
+        dilationW = param.dilation(0);
+        dilationH = dilationW;
       }
-      else if(cuda_package_type == NN)
-      {
+      if(dilationW > 1 || dilationH > 1) {
         if(groups != 1)
         {
           std::cout << "nn supports no groups!\n";
           break;
         }
         char buf[1024];
-        sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+        sprintf(buf, "nn.SpatialDilatedConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, dilationW, dilationH);
         lines.emplace_back(layer.name(), buf);
-      }
-      else
-      {
-        char buf[1024];
-        sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
-            nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
-        lines.emplace_back(layer.name(), buf);
+      } else {
+        if(cuda_package_type == CCN2)
+        {
+          if(kW != kH || dW != dH || pad_w != pad_h)
+          {
+            std::cout << "ccn2 only supports square images!\n";
+            break;
+          }
+          char buf[1024];
+          sprintf(buf, "ccn2.SpatialConvolution(%d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, dW, pad_w, groups);
+          lines.emplace_back(layer.name(), buf);
+        }
+        else if(cuda_package_type == NN)
+        {
+          if(groups != 1)
+          {
+            std::cout << "nn supports no groups!\n";
+            break;
+          }
+          char buf[1024];
+          sprintf(buf, "nn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h);
+          lines.emplace_back(layer.name(), buf);
+        }
+        else
+        {
+          char buf[1024];
+          sprintf(buf, "cudnn.SpatialConvolution(%d, %d, %d, %d, %d, %d, %d, %d, %d)",
+              nInputPlane, nOutputPlane, kW, kH, dW, dH, pad_w, pad_h, groups);
+          lines.emplace_back(layer.name(), buf);
+        }
       }
     }
     if(layer.type() == "Pooling")
