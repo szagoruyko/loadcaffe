@@ -54,7 +54,7 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY);
     if(fd < 0)
       return false;
-    
+
     FileInputStream* input = new FileInputStream(fd);
     bool success = google::protobuf::TextFormat::Parse(input, proto);
     delete input;
@@ -67,13 +67,13 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
     int fd = open(filename, O_RDONLY_BIN);
     if(fd < 0)
       return false;
-    
+
     ZeroCopyInputStream* raw_input = new FileInputStream(fd);
     CodedInputStream* coded_input = new CodedInputStream(raw_input);
     coded_input->SetTotalBytesLimit(1073741824, 536870912);
-    
+
     bool success = proto->ParseFromCodedStream(coded_input);
-    
+
     delete coded_input;
     delete raw_input;
     close(fd);
@@ -135,19 +135,32 @@ void convertProtoToLuaV1(const caffe::NetParameter &netparam, const char* lua_na
         int dH = param.stride_h();
         if(kW==0 || kH==0)
         {
-          kW = param.kernel_size();
+          if(param.kernel_size().size() > 0) {
+            kW = param.kernel_size(0);
+          } else {
+            std::cout << "error: module '" << layer.name() << " [type " << layer.type() << "]" << "' is missing kernel size specification\n";
+            exit(1);
+          }
           kH = kW;
         }
         if(dW==0 || dH==0)
         {
-          dW = param.stride();
+          if(param.stride().size() > 0) {
+            dW = param.stride(0);
+          } else {
+            dW = 1; // Default stride
+          }
           dH = dW;
         }
         int pad_w = param.pad_w();
         int pad_h = param.pad_h();
         if(pad_w==0 || pad_h==0)
         {
-          pad_w = param.pad();
+          if(param.pad().size() > 0) {
+            pad_w = param.pad(0);
+          } else {
+            pad_w = 0; // Default padding
+          }
           pad_h = pad_w;
         }
         if(cuda_package_type == CCN2)
@@ -392,19 +405,32 @@ void convertProtoToLuaV2(const caffe::NetParameter &netparam, const char* lua_na
       int dH = param.stride_h();
       if(kW==0 || kH==0)
       {
-        kW = param.kernel_size();
+        if(param.kernel_size().size() > 0) {
+          kW = param.kernel_size(0);
+        } else {
+          std::cout << "error: module '" << layer.name() << " [type " << layer.type() << "]" << "' is missing kernel size specification\n";
+          exit(1);
+        }
         kH = kW;
       }
       if(dW==0 || dH==0)
       {
-        dW = param.stride();
+        if(param.stride().size() > 0) {
+          dW = param.stride(0);
+        } else {
+          dW = 1; // Default stride
+        }
         dH = dW;
       }
       int pad_w = param.pad_w();
       int pad_h = param.pad_h();
       if(pad_w==0 || pad_h==0)
       {
-        pad_w = param.pad();
+        if(param.pad().size() > 0) {
+          pad_w = param.pad(0);
+        } else {
+          pad_w = 0; // Default padding
+        }
         pad_h = pad_w;
       }
       if(cuda_package_type == CCN2)
